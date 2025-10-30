@@ -18,10 +18,10 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ## Development Setup
 
-We use modern Python tooling:
-- **uv** for fast dependency management (optional but recommended)
+We use modern Python tooling with **uv** as the primary package manager:
+- **uv** for fast dependency management (recommended)
 - **pytest** for testing
-- **black** for code formatting
+- **ruff** for linting and formatting
 - **mypy** for type checking
 
 ### Using uv (recommended)
@@ -30,16 +30,25 @@ We use modern Python tooling:
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Create virtual environment and install dependencies
-uv sync
+# Clone and setup
+git clone https://github.com/aviadr1/gemini-imagen.git
+cd gemini-imagen
+
+# Lock and sync all dependencies
+uv lock
+uv sync --all-extras
+
+# Install pre-commit hooks
+uv run pre-commit install
 ```
 
-### Using pip
+### Using pip (alternative)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -e ".[dev,s3]"
+pre-commit install
 ```
 
 ## Making Changes
@@ -57,12 +66,17 @@ pip install -e ".[dev]"
 
 3. Run tests:
    ```bash
-   pytest
+   uv run pytest tests/ -v
+   # Or use make:
+   make test
    ```
 
-4. Format code (if using black):
+4. Format and lint code:
    ```bash
-   black src/gemini_imagen
+   uv run ruff format src/ examples/ tests/
+   uv run ruff check --fix src/ examples/ tests/
+   # Or use make:
+   make format
    ```
 
 ## Pull Request Process

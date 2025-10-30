@@ -20,22 +20,42 @@ A comprehensive Python wrapper for Google Gemini's image generation and analysis
 
 ### Basic Installation
 
+Using pip:
 ```bash
 pip install gemini-imagen
 ```
 
+Using uv (recommended - faster):
+```bash
+uv pip install gemini-imagen
+```
+
 ### With S3 Support
 
+Using pip:
 ```bash
 pip install gemini-imagen[s3]
 ```
 
+Using uv:
+```bash
+uv pip install gemini-imagen[s3]
+```
+
 ### From Source
 
+Using uv (recommended):
 ```bash
 git clone https://github.com/aviadr1/gemini-imagen.git
 cd gemini-imagen
-pip install -e .
+uv sync --all-extras
+```
+
+Or using pip:
+```bash
+git clone https://github.com/aviadr1/gemini-imagen.git
+cd gemini-imagen
+pip install -e ".[dev,s3]"
 ```
 
 ## Quick Start
@@ -356,6 +376,21 @@ See the [`examples/`](examples/) directory for complete working examples:
 
 ### Setup Development Environment
 
+**Using uv (recommended):**
+```bash
+# Clone the repository
+git clone https://github.com/aviadr1/gemini-imagen.git
+cd gemini-imagen
+
+# Lock dependencies and sync (installs everything)
+uv lock
+uv sync --all-extras
+
+# Install pre-commit hooks
+uv run pre-commit install
+```
+
+**Or using pip:**
 ```bash
 # Clone the repository
 git clone https://github.com/aviadr1/gemini-imagen.git
@@ -370,15 +405,21 @@ pre-commit install
 
 ### Running Tests
 
+**Using uv:**
 ```bash
 # Run all tests
-make test
+uv run pytest tests/ -v
 
 # Run with coverage
-pytest tests/ -v --cov=gemini_imagen --cov-report=html
+uv run pytest tests/ -v --cov=gemini_imagen --cov-report=html
 
 # Run specific test file
-pytest tests/test_gemini_image_wrapper.py -v
+uv run pytest tests/test_gemini_image_wrapper.py -v
+```
+
+**Using make (with uv):**
+```bash
+make test    # Runs: uv run pytest
 ```
 
 ### Code Quality

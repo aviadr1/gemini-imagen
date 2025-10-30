@@ -4,8 +4,8 @@ Basic text-to-image generation example.
 This example shows the simplest use case: generating an image from a text prompt.
 """
 
-import os
 from dotenv import load_dotenv
+
 from gemini_imagen import GeminiImageGenerator
 
 # Load environment variables from .env file
@@ -20,6 +20,6 @@ result = generator.generate(
     output_images=["garden.png"]
 )
 
-print(f"✓ Image generated successfully!")
+print("✓ Image generated successfully!")
 print(f"  Saved to: {result.image_location}")
 print(f"  Size: {result.image.size}")

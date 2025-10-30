@@ -5,7 +5,9 @@ This example shows how to enable LangSmith tracing for observability.
 """
 
 import os
+
 from dotenv import load_dotenv
+
 from gemini_imagen import GeminiImageGenerator
 
 load_dotenv()
@@ -28,6 +30,6 @@ result = generator.generate(
     tags=["example", "demo", "magical-forest"]
 )
 
-print(f"✓ Image generated with LangSmith tracing!")
+print("✓ Image generated with LangSmith tracing!")
 print(f"  Saved to: {result.image_location}")
-print(f"\n📊 Check your trace at: https://smith.langchain.com/")
+print("\n📊 Check your trace at: https://smith.langchain.com/")

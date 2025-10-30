@@ -6,7 +6,9 @@ Requires AWS credentials to be configured.
 """
 
 import os
+
 from dotenv import load_dotenv
+
 from gemini_imagen import GeminiImageGenerator
 
 load_dotenv()
@@ -30,7 +32,7 @@ result = generator.generate(
     output_images=[f"s3://{aws_bucket}/examples/cityscape.png"]
 )
 
-print(f"✓ Image uploaded to S3!")
+print("✓ Image uploaded to S3!")
 print(f"  S3 URI: {result.image_s3_uri}")
 print(f"  HTTP URL: {result.image_http_url}")
 
@@ -41,6 +43,6 @@ result2 = generator.generate(
     output_images=[f"s3://{aws_bucket}/examples/cityscape_cyberpunk.png"]
 )
 
-print(f"\n✓ Edited image uploaded to S3!")
+print("\n✓ Edited image uploaded to S3!")
 print(f"  S3 URI: {result2.image_s3_uri}")
 print(f"  HTTP URL: {result2.image_http_url}")

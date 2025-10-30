@@ -5,8 +5,8 @@ This example shows how to label input images so you can reference them
 by name in your prompts for better control.
 """
 
-import os
 from dotenv import load_dotenv
+
 from gemini_imagen import GeminiImageGenerator
 
 load_dotenv()
@@ -23,5 +23,5 @@ result = generator.generate(
     output_images=["blended.png"]
 )
 
-print(f"✓ Blended image created!")
+print("✓ Blended image created!")
 print(f"  Saved to: {result.image_location}")

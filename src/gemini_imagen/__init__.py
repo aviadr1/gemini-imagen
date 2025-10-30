@@ -36,20 +36,20 @@ Example:
 
 from .gemini_image_wrapper import (
     GeminiImageGenerator,
-    ResponseModality,
-    ImageType,
     GenerationResult,
+    ImageType,
+    ResponseModality,
 )
 from .s3_utils import (
-    load_image,
-    save_image,
-    upload_to_s3,
     download_from_s3,
-    is_s3_uri,
-    parse_s3_uri,
+    get_default_bucket,
     get_http_url,
     get_s3_client,
-    get_default_bucket,
+    is_s3_uri,
+    load_image,
+    parse_s3_uri,
+    save_image,
+    upload_to_s3,
 )
 
 __all__ = [

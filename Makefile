@@ -1,15 +1,21 @@
-.PHONY: help install install-dev test lint format clean build publish
+.PHONY: help install install-dev sync test lint format clean build publish
 
 help:
 	@echo "Available commands:"
-	@echo "  make install      - Install package"
-	@echo "  make install-dev  - Install package with dev dependencies"
-	@echo "  make test         - Run tests"
-	@echo "  make lint         - Run linters"
-	@echo "  make format       - Format code"
+	@echo "  make sync         - Sync dependencies with uv (recommended)"
+	@echo "  make install      - Install package with pip"
+	@echo "  make install-dev  - Install package with dev dependencies (pip)"
+	@echo "  make test         - Run tests with uv"
+	@echo "  make lint         - Run linters with uv"
+	@echo "  make format       - Format code with uv"
 	@echo "  make clean        - Clean build artifacts"
 	@echo "  make build        - Build package"
 	@echo "  make publish      - Publish to PyPI"
+
+sync:
+	uv lock
+	uv sync --all-extras
+	uv run pre-commit install
 
 install:
 	pip install -e .
@@ -19,15 +25,15 @@ install-dev:
 	pre-commit install
 
 test:
-	pytest tests/ -v --cov=gemini_imagen --cov-report=term --cov-report=html
+	uv run pytest tests/ -v --cov=gemini_imagen --cov-report=term --cov-report=html
 
 lint:
-	ruff check src/ examples/ tests/
-	mypy src/gemini_imagen --ignore-missing-imports
+	uv run ruff check src/ examples/ tests/
+	uv run mypy src/gemini_imagen --ignore-missing-imports
 
 format:
-	ruff format src/ examples/ tests/
-	ruff check --fix src/ examples/ tests/
+	uv run ruff format src/ examples/ tests/
+	uv run ruff check --fix src/ examples/ tests/
 
 clean:
 	rm -rf build/
@@ -48,4 +54,4 @@ publish: build
 	python -m twine upload dist/*
 
 pre-commit:
-	pre-commit run --all-files
+	uv run pre-commit run --all-files

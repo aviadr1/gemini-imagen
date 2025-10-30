@@ -7,14 +7,13 @@ supporting both local file paths and S3 URIs.
 """
 
 import os
-from pathlib import Path
-from typing import Tuple, Optional, Union
 from io import BytesIO
+from pathlib import Path
+from typing import Union
 
 import boto3
-from botocore.exceptions import ClientError
-from PIL import Image
 from dotenv import load_dotenv
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -80,7 +79,7 @@ def is_s3_uri(path: Union[str, Path]) -> bool:
     return str(path).startswith("s3://")
 
 
-def parse_s3_uri(uri: str) -> Tuple[str, str]:
+def parse_s3_uri(uri: str) -> tuple[str, str]:
     """
     Parse an S3 URI into bucket and key components.
 
@@ -126,9 +125,9 @@ def get_http_url(bucket: str, key: str, region: str = "us-east-1") -> str:
 def upload_to_s3(
     local_path: Union[str, Path, Image.Image],
     s3_key: str,
-    bucket: Optional[str] = None,
+    bucket: str | None = None,
     region: str = "us-east-1"
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Upload an image to S3 and return both S3 URI and HTTP URL.
 
@@ -190,7 +189,7 @@ def upload_to_s3(
 
 def download_from_s3(
     s3_uri: str,
-    local_path: Optional[Union[str, Path]] = None
+    local_path: Union[str, Path] | None = None
 ) -> Union[Image.Image, str]:
     """
     Download an image from S3.
@@ -269,7 +268,7 @@ def save_image(
     image: Image.Image,
     output_location: Union[str, Path],
     region: str = "us-east-1"
-) -> Tuple[str, Optional[str], Optional[str]]:
+) -> tuple[str, str | None, str | None]:
     """
     Save an image to either local filesystem or S3.
 

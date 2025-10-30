@@ -49,24 +49,24 @@ Usage:
 
 import os
 from enum import Enum
-from typing import Optional, List, Union, Dict, Tuple, Any
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
+from typing import Any, Union
 
-from PIL import Image
-from pydantic import BaseModel, Field, ConfigDict
 import google.generativeai as genai
-from google.generativeai.types import GenerateContentResponse
-from langsmith import traceable, get_current_run_tree
-from langsmith.run_trees import RunTree
 from dotenv import load_dotenv
+from google.generativeai.types import GenerateContentResponse
+from langsmith import get_current_run_tree, traceable
+from langsmith.run_trees import RunTree
+from PIL import Image
+from pydantic import BaseModel, ConfigDict, Field
 
 from .s3_utils import (
-    load_image,
-    save_image,
-    is_s3_uri,
-    parse_s3_uri,
     get_http_url,
+    is_s3_uri,
+    load_image,
+    parse_s3_uri,
+    save_image,
 )
 
 # Load environment variables
@@ -90,10 +90,10 @@ class ImageType(str, Enum):
 # Type aliases for better clarity
 ImagePath = Union[str, Path]  # File path or S3 URI
 RawImageSource = Union[Image.Image, ImagePath]  # A raw image: PIL, file path, or S3 URI
-LabeledImage = Tuple[str, RawImageSource]  # Labeled image: ("label", image)
+LabeledImage = tuple[str, RawImageSource]  # Labeled image: ("label", image)
 ImageSource = Union[RawImageSource, LabeledImage]  # Image or labeled image
 OutputLocation = Union[str, Path]  # Where to save an image
-LabeledOutput = Tuple[str, OutputLocation]  # Labeled output: ("label", location)
+LabeledOutput = tuple[str, OutputLocation]  # Labeled output: ("label", location)
 OutputImageSpec = Union[OutputLocation, LabeledOutput]  # Output spec with optional label
 
 
@@ -101,11 +101,11 @@ class ImageInfo(BaseModel):
     """Metadata about an input image for logging purposes."""
     model_config = ConfigDict(frozen=True)
 
-    label: Optional[str] = Field(None, description="Optional label for the image")
+    label: str | None = Field(None, description="Optional label for the image")
     type: ImageType = Field(..., description="Type of image source")
-    s3_uri: Optional[str] = Field(None, description="S3 URI if type is 's3'")
-    http_url: Optional[str] = Field(None, description="HTTP URL if type is 's3'")
-    local_path: Optional[str] = Field(None, description="Local file path if type is 'local'")
+    s3_uri: str | None = Field(None, description="S3 URI if type is 's3'")
+    http_url: str | None = Field(None, description="HTTP URL if type is 's3'")
+    local_path: str | None = Field(None, description="Local file path if type is 'local'")
 
 
 class GenerationResult(BaseModel):
@@ -113,34 +113,34 @@ class GenerationResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Text or structured output (mutually exclusive)
-    text: Optional[str] = Field(None, description="Generated text response")
-    structured: Optional[Any] = Field(None, description="Structured output as Pydantic instance")
+    text: str | None = Field(None, description="Generated text response")
+    structured: Any | None = Field(None, description="Structured output as Pydantic instance")
 
     # Multiple images support
-    images: List[Image.Image] = Field(default_factory=list, description="List of generated PIL Images")
-    image_labels: List[Optional[str]] = Field(default_factory=list, description="Labels for generated images")
-    image_locations: List[str] = Field(default_factory=list, description="Locations where images were saved")
-    image_s3_uris: List[Optional[str]] = Field(default_factory=list, description="S3 URIs if saved to S3")
-    image_http_urls: List[Optional[str]] = Field(default_factory=list, description="HTTP URLs if saved to S3")
+    images: list[Image.Image] = Field(default_factory=list, description="List of generated PIL Images")
+    image_labels: list[str | None] = Field(default_factory=list, description="Labels for generated images")
+    image_locations: list[str] = Field(default_factory=list, description="Locations where images were saved")
+    image_s3_uris: list[str | None] = Field(default_factory=list, description="S3 URIs if saved to S3")
+    image_http_urls: list[str | None] = Field(default_factory=list, description="HTTP URLs if saved to S3")
 
     # Backward compatibility - single image access (returns first image)
     @property
-    def image(self) -> Optional[Image.Image]:
+    def image(self) -> Image.Image | None:
         """Get first image for backward compatibility."""
         return self.images[0] if self.images else None
 
     @property
-    def image_location(self) -> Optional[str]:
+    def image_location(self) -> str | None:
         """Get first image location for backward compatibility."""
         return self.image_locations[0] if self.image_locations else None
 
     @property
-    def image_s3_uri(self) -> Optional[str]:
+    def image_s3_uri(self) -> str | None:
         """Get first S3 URI for backward compatibility."""
         return self.image_s3_uris[0] if self.image_s3_uris else None
 
     @property
-    def image_http_url(self) -> Optional[str]:
+    def image_http_url(self) -> str | None:
         """Get first HTTP URL for backward compatibility."""
         return self.image_http_urls[0] if self.image_http_urls else None
 
@@ -160,7 +160,7 @@ class GeminiImageGenerator:
     def __init__(
         self,
         model_name: str = "gemini-2.5-flash-image",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         log_images: bool = True
     ) -> None:
         """
@@ -197,16 +197,16 @@ class GeminiImageGenerator:
     def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
-        input_images: Optional[List[ImageSource]] = None,
-        temperature: Optional[float] = None,
+        system_prompt: str | None = None,
+        input_images: list[ImageSource] | None = None,
+        temperature: float | None = None,
 
         # Output configuration
-        output_images: Optional[List[OutputImageSpec]] = None,
+        output_images: list[OutputImageSpec] | None = None,
         output_text: bool = False,
 
-        metadata: Optional[Dict[str, str]] = None,
-        tags: Optional[List[str]] = None
+        metadata: dict[str, str] | None = None,
+        tags: list[str] | None = None
     ) -> GenerationResult:
         """
         Unified generation function with support for:
@@ -332,11 +332,11 @@ class GeminiImageGenerator:
 
     def _determine_response_modalities(
         self,
-        output_images: Optional[List[OutputImageSpec]],
+        output_images: list[OutputImageSpec] | None,
         output_text: bool
-    ) -> List[str]:
+    ) -> list[str]:
         """Determine what response modalities to request from Gemini."""
-        modalities: List[str] = []
+        modalities: list[str] = []
 
         if output_images:
             modalities.append(ResponseModality.IMAGE.value)
@@ -350,17 +350,17 @@ class GeminiImageGenerator:
     def _build_content_with_labels(
         self,
         prompt: str,
-        system_prompt: Optional[str],
-        input_images: Optional[List[ImageSource]]
-    ) -> Tuple[List[Union[str, Image.Image, Dict[str, Any]]], List[ImageInfo]]:
+        system_prompt: str | None,
+        input_images: list[ImageSource] | None
+    ) -> tuple[list[Union[str, Image.Image, dict[str, Any]]], list[ImageInfo]]:
         """
         Build content list with labeled images interleaved.
 
         Returns:
             (content_list, image_infos)
         """
-        content: List[Union[str, Image.Image, Dict[str, Any]]] = []
-        image_infos: List[ImageInfo] = []
+        content: list[Union[str, Image.Image, dict[str, Any]]] = []
+        image_infos: list[ImageInfo] = []
 
         # Add system prompt if provided
         if system_prompt:
@@ -395,8 +395,8 @@ class GeminiImageGenerator:
     def _load_single_image(
         self,
         img_source: RawImageSource,
-        label: Optional[str]
-    ) -> Tuple[Image.Image, ImageInfo]:
+        label: str | None
+    ) -> tuple[Image.Image, ImageInfo]:
         """Load a single image and create its metadata."""
         if isinstance(img_source, (str, Path)):
             img_path = str(img_source)
@@ -426,13 +426,13 @@ class GeminiImageGenerator:
 
         return loaded_img, info
 
-    def _log_input_images(self, image_infos: List[ImageInfo]) -> None:
+    def _log_input_images(self, image_infos: list[ImageInfo]) -> None:
         """Log input images to LangSmith."""
         if not self.log_images or not image_infos:
             return
 
         try:
-            run_tree: Optional[RunTree] = get_current_run_tree()
+            run_tree: RunTree | None = get_current_run_tree()
             if not run_tree:
                 return
 
@@ -454,12 +454,12 @@ class GeminiImageGenerator:
 
     def _call_gemini(
         self,
-        content: List[Union[str, Image.Image, Dict[str, Any]]],
-        temperature: Optional[float],
-        modalities: List[str]
+        content: list[Union[str, Image.Image, dict[str, Any]]],
+        temperature: float | None,
+        modalities: list[str]
     ) -> GenerateContentResponse:
         """Call Gemini API and return response."""
-        generation_config: Dict[str, Any] = {
+        generation_config: dict[str, Any] = {
             "response_modalities": modalities,
         }
 
@@ -510,7 +510,7 @@ class GeminiImageGenerator:
             part.inline_data.data
         )
 
-    def _extract_image_from_part(self, part: Any) -> Optional[Image.Image]:
+    def _extract_image_from_part(self, part: Any) -> Image.Image | None:
         """Extract PIL Image from a response part."""
         try:
             if not hasattr(part, 'inline_data') or not part.inline_data:
@@ -524,10 +524,10 @@ class GeminiImageGenerator:
 
     def _parse_output_specs(
         self,
-        output_images: List[OutputImageSpec]
-    ) -> List[Tuple[Optional[str], Union[str, Path]]]:
+        output_images: list[OutputImageSpec]
+    ) -> list[tuple[str | None, Union[str, Path]]]:
         """Parse output image specifications into (label, location) tuples."""
-        specs: List[Tuple[Optional[str], Union[str, Path]]] = []
+        specs: list[tuple[str | None, Union[str, Path]]] = []
 
         for spec in output_images:
             if isinstance(spec, tuple) and len(spec) == 2:
@@ -541,7 +541,7 @@ class GeminiImageGenerator:
     def _save_and_log_images(
         self,
         result: GenerationResult,
-        output_specs: List[Tuple[Optional[str], Union[str, Path]]]
+        output_specs: list[tuple[str | None, Union[str, Path]]]
     ) -> None:
         """Save generated images and log to LangSmith."""
         # Match images with output specs
@@ -562,14 +562,14 @@ class GeminiImageGenerator:
     def _log_single_output_image(
         self,
         idx: int,
-        label: Optional[str],
-        s3_uri: Optional[str],
-        http_url: Optional[str],
-        local_path: Optional[str]
+        label: str | None,
+        s3_uri: str | None,
+        http_url: str | None,
+        local_path: str | None
     ) -> None:
         """Log a single output image to LangSmith."""
         try:
-            run_tree: Optional[RunTree] = get_current_run_tree()
+            run_tree: RunTree | None = get_current_run_tree()
             if not run_tree:
                 return
 
@@ -594,7 +594,7 @@ class GeminiImageGenerator:
             return
 
         try:
-            run_tree: Optional[RunTree] = get_current_run_tree()
+            run_tree: RunTree | None = get_current_run_tree()
             if not run_tree:
                 return
 
