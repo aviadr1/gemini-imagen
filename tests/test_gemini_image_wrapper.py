@@ -25,14 +25,18 @@ class TestGeminiImageGenerator:
         assert generator.model_name == "custom-model"
         assert generator.log_images is True
 
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_generate_text_only(self, mock_model, mock_env_vars, mock_langsmith):
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    def test_generate_text_only(self, mock_client_class, mock_env_vars, mock_langsmith):
         """Test generating text-only output."""
         # Setup mock response
         mock_response = MagicMock()
         mock_response.candidates = [MagicMock()]
         mock_response.candidates[0].content.parts = [MagicMock(text="Test response")]
-        mock_model.return_value.generate_content.return_value = mock_response
+
+        # Setup mock client instance
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         generator = GeminiImageGenerator()
         result = generator.generate(prompt="Test prompt", output_text=True)
@@ -41,8 +45,8 @@ class TestGeminiImageGenerator:
         assert result.text == "Test response"
         assert len(result.images) == 0
 
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_generate_with_image_output(self, mock_model, mock_env_vars, tmp_path, mock_langsmith):
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    def test_generate_with_image_output(self, mock_client_class, mock_env_vars, tmp_path, mock_langsmith):
         """Test generating image output."""
         # Setup mock response with image data
         mock_response = MagicMock()
@@ -56,7 +60,10 @@ class TestGeminiImageGenerator:
             mock_img = Image.new("RGB", (100, 100), color="blue")
             mock_image_open.return_value = mock_img
 
-            mock_model.return_value.generate_content.return_value = mock_response
+            # Setup mock client instance
+            mock_client = MagicMock()
+            mock_client.models.generate_content.return_value = mock_response
+            mock_client_class.return_value = mock_client
 
             generator = GeminiImageGenerator()
             output_path = tmp_path / "output.png"

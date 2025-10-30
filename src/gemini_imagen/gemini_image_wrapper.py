@@ -53,9 +53,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union
 
-import google.generativeai as genai
 from dotenv import load_dotenv
-from google.generativeai.types import GenerateContentResponse
+from google import genai
+from google.genai import types
 from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
@@ -202,8 +202,7 @@ class GeminiImageGenerator:
                 "or pass api_key parameter."
             )
 
-        genai.configure(api_key=api_key)
-        self.model: genai.GenerativeModel = genai.GenerativeModel(model_name)
+        self.client = genai.Client(api_key=api_key)
         self.model_name: str = model_name
         self.log_images: bool = log_images
 
@@ -269,12 +268,16 @@ class GeminiImageGenerator:
             )
 
             # Step 2: Get structured output (separate model)
-            from google import generativeai as genai
-            text_model = genai.GenerativeModel("gemini-2.5-flash")
+            from google import genai
+            from google.genai import types
 
-            response = text_model.generate_content(
-                result.text + "\\n\\nFormat as JSON with fields: objects, colors, mood",
-                generation_config={"response_mime_type": "application/json"}
+            client = genai.Client(api_key='your-api-key')
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=result.text + "\\n\\nFormat as JSON with fields: objects, colors, mood",
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
             )
             ```
 
@@ -476,19 +479,25 @@ class GeminiImageGenerator:
         content: list[Union[str, Image.Image, dict[str, Any]]],
         temperature: float | None,
         modalities: list[str],
-    ) -> GenerateContentResponse:
+    ) -> types.GenerateContentResponse:
         """Call Gemini API and return response."""
-        generation_config: dict[str, Any] = {
+        config_params: dict[str, Any] = {
             "response_modalities": modalities,
         }
 
         # Add temperature if specified
         if temperature is not None:
-            generation_config["temperature"] = temperature
+            config_params["temperature"] = temperature
 
-        return self.model.generate_content(content, generation_config=generation_config)  # type: ignore[arg-type]
+        config = types.GenerateContentConfig(**config_params)
 
-    def _extract_response(self, response: GenerateContentResponse) -> GenerationResult:
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=content,
+            config=config,
+        )
+
+    def _extract_response(self, response: types.GenerateContentResponse) -> GenerationResult:
         """Extract text and images from Gemini response."""
         result = GenerationResult(text=None, structured=None)
 

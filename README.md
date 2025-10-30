@@ -308,7 +308,8 @@ result = generator.generate(
 )
 
 # Step 2: Get structured output with gemini-2.5-flash
-from google import generativeai as genai
+from google import genai
+from google.genai import types
 from pydantic import BaseModel
 
 class ImageAnalysis(BaseModel):
@@ -316,13 +317,14 @@ class ImageAnalysis(BaseModel):
     colors: list[str]
     mood: str
 
-text_model = genai.GenerativeModel("gemini-2.5-flash")
-response = text_model.generate_content(
-    f"{result.text}\\n\\nFormat as JSON with fields: objects, colors, mood",
-    generation_config={
-        "response_mime_type": "application/json",
-        "response_schema": ImageAnalysis.model_json_schema()
-    }
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=f"{result.text}\\n\\nFormat as JSON with fields: objects, colors, mood",
+    config=types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=ImageAnalysis.model_json_schema()
+    )
 )
 
 analysis = ImageAnalysis.model_validate_json(response.text)
@@ -521,7 +523,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- Built on [`google-generativeai`](https://github.com/google/generative-ai-python) Python SDK
+- Built on [`google-genai`](https://github.com/googleapis/python-genai) - Google's unified GenAI SDK (replaces deprecated `google-generativeai`)
 - Uses [`langsmith`](https://github.com/langchain-ai/langsmith-sdk) for tracing
 - S3 integration via [`boto3`](https://github.com/boto/boto3)
 - Type validation with [`pydantic`](https://github.com/pydantic/pydantic) v2

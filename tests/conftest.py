@@ -12,9 +12,9 @@ load_dotenv()
 
 
 @pytest.fixture
-def mock_gemini_model():
-    """Mock Google Gemini model for testing."""
-    with patch("google.generativeai.GenerativeModel") as mock:
+def mock_gemini_client():
+    """Mock Google Gemini client for testing."""
+    with patch("google.genai.Client") as mock:
         yield mock
 
 

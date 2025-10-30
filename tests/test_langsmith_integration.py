@@ -11,8 +11,8 @@ class TestLangSmithIntegration:
     """Test LangSmith integration with actual tracing."""
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_s3_input_logging_to_langsmith(self, mock_model, mock_get_run_tree, mock_env_vars):
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    def test_s3_input_logging_to_langsmith(self, mock_client_class, mock_get_run_tree, mock_env_vars):
         """Test that S3 input images are properly logged to LangSmith."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -23,7 +23,11 @@ class TestLangSmithIntegration:
         mock_response = MagicMock()
         mock_response.candidates = [MagicMock()]
         mock_response.candidates[0].content.parts = [MagicMock(text="Test response")]
-        mock_model.return_value.generate_content.return_value = mock_response
+
+        # Setup mock client instance
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         # Create generator with logging enabled
         generator = GeminiImageGenerator(log_images=True)
@@ -50,10 +54,10 @@ class TestLangSmithIntegration:
         assert "https://" in mock_run_tree.inputs["input_image_0_http_url"]
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
     @patch("gemini_imagen.gemini_image_wrapper.save_image")
     def test_s3_output_logging_to_langsmith(
-        self, mock_save, mock_model, mock_get_run_tree, mock_env_vars
+        self, mock_save, mock_client_class, mock_get_run_tree, mock_env_vars
     ):
         """Test that S3 output images are properly logged to LangSmith."""
         # Setup mock run tree
@@ -73,7 +77,11 @@ class TestLangSmithIntegration:
         with patch("PIL.Image.open") as mock_image_open:
             mock_img = Image.new("RGB", (100, 100), color="blue")
             mock_image_open.return_value = mock_img
-            mock_model.return_value.generate_content.return_value = mock_response
+
+            # Setup mock client instance
+            mock_client = MagicMock()
+            mock_client.models.generate_content.return_value = mock_response
+            mock_client_class.return_value = mock_client
 
             # Mock save_image to return S3 URIs
             mock_save.return_value = (
@@ -102,9 +110,9 @@ class TestLangSmithIntegration:
         )
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
     def test_local_input_logging_to_langsmith(
-        self, mock_model, mock_get_run_tree, mock_env_vars, sample_image_path
+        self, mock_client_class, mock_get_run_tree, mock_env_vars, sample_image_path
     ):
         """Test that local input images are properly logged to LangSmith."""
         # Setup mock run tree
@@ -116,7 +124,11 @@ class TestLangSmithIntegration:
         mock_response = MagicMock()
         mock_response.candidates = [MagicMock()]
         mock_response.candidates[0].content.parts = [MagicMock(text="Test response")]
-        mock_model.return_value.generate_content.return_value = mock_response
+
+        # Setup mock client instance
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         # Create generator with logging enabled
         generator = GeminiImageGenerator(log_images=True)
@@ -134,8 +146,8 @@ class TestLangSmithIntegration:
         assert "input_image_0_http_url" not in mock_run_tree.inputs
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_no_logging_when_disabled(self, mock_model, mock_get_run_tree, mock_env_vars):
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    def test_no_logging_when_disabled(self, mock_client_class, mock_get_run_tree, mock_env_vars):
         """Test that nothing is logged when log_images=False."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -147,7 +159,11 @@ class TestLangSmithIntegration:
         mock_response = MagicMock()
         mock_response.candidates = [MagicMock()]
         mock_response.candidates[0].content.parts = [MagicMock(text="Test response")]
-        mock_model.return_value.generate_content.return_value = mock_response
+
+        # Setup mock client instance
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         # Create generator with logging DISABLED
         generator = GeminiImageGenerator(log_images=False)
@@ -167,8 +183,8 @@ class TestLangSmithIntegration:
         assert len(mock_run_tree.outputs) == 0
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
-    @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_multiple_s3_inputs_logged(self, mock_model, mock_get_run_tree, mock_env_vars):
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    def test_multiple_s3_inputs_logged(self, mock_client_class, mock_get_run_tree, mock_env_vars):
         """Test that multiple S3 input images are all logged correctly."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -179,7 +195,11 @@ class TestLangSmithIntegration:
         mock_response = MagicMock()
         mock_response.candidates = [MagicMock()]
         mock_response.candidates[0].content.parts = [MagicMock(text="Test response")]
-        mock_model.return_value.generate_content.return_value = mock_response
+
+        # Setup mock client instance
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         # Create generator with logging enabled
         generator = GeminiImageGenerator(log_images=True)
