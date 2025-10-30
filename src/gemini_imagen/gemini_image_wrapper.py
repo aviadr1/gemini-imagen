@@ -426,7 +426,11 @@ class GeminiImageGenerator:
                 )
             else:
                 info = ImageInfo(
-                    label=label, type=ImageType.LOCAL, local_path=img_path, s3_uri=None, http_url=None
+                    label=label,
+                    type=ImageType.LOCAL,
+                    local_path=img_path,
+                    s3_uri=None,
+                    http_url=None,
                 )
 
             loaded_img = load_image(img_source)
