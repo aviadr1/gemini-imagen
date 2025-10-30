@@ -393,7 +393,7 @@ s3 = [
 requires-dist = [
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.34.0" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "google-generativeai", specifier = ">=0.8.0" },
+    { name = "google-generativeai", specifier = ">=0.6.18" },
     { name = "langsmith", specifier = ">=0.1.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11.0" },
     { name = "pillow", specifier = ">=10.0.0" },
