@@ -33,11 +33,12 @@ class TestRealGeminiAPI:
         """Test basic text-to-image generation with real API."""
         from gemini_imagen import GeminiImageGenerator
 
-        generator = GeminiImageGenerator(log_images=False)
+        generator = GeminiImageGenerator(log_images=True)
         result = generator.generate(
             prompt="A simple red circle",
             output_images=["test_e2e_circle.png"],
             run_name="test_basic_image_generation",
+            tags=["pytest", "e2e", "basic-generation"],
         )
 
         assert result.image is not None
@@ -68,16 +69,22 @@ class TestRealS3Integration:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         s3_path = f"s3://{aws_bucket}/test_e2e/circle_{timestamp}.png"
 
-        generator = GeminiImageGenerator(log_images=False)
+        generator = GeminiImageGenerator(log_images=True)
         result = generator.generate(
             prompt="A simple blue square",
             output_images=[s3_path],
             run_name="test_s3_image_generation",
+            tags=["pytest", "e2e", "s3-integration"],
         )
 
         assert result.image_s3_uri == s3_path
         assert result.image_http_url is not None
         assert "https://" in result.image_http_url
+
+        print(f"\n✅ S3 image generated and logged to LangSmith")
+        print(f"   S3 URI: {result.image_s3_uri}")
+        print(f"   HTTP URL: {result.image_http_url}")
+        print(f"   Check LangSmith project 'gemini-imagen' for run 'test_s3_image_generation'")
 
 
 @requires_google_api_key()
