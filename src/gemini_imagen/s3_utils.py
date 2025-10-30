@@ -17,6 +17,7 @@ from PIL import Image
 # Conditional boto3 import
 try:
     import boto3
+
     HAS_BOTO3 = True
 except ImportError:
     HAS_BOTO3 = False
@@ -40,8 +41,7 @@ def get_s3_client() -> "boto3.client":  # type: ignore
     """
     if not HAS_BOTO3:
         raise ImportError(
-            "boto3 is required for S3 operations. "
-            "Install it with: pip install gemini-imagen[s3]"
+            "boto3 is required for S3 operations. Install it with: pip install gemini-imagen[s3]"
         )
 
     access_key = os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
@@ -53,11 +53,7 @@ def get_s3_client() -> "boto3.client":  # type: ignore
             "environment variables."
         )
 
-    return boto3.client(
-        's3',
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key
-    )
+    return boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key)
 
 
 def get_default_bucket() -> str:
@@ -74,8 +70,7 @@ def get_default_bucket() -> str:
 
     if not bucket:
         raise ValueError(
-            "Default S3 bucket not configured. Set GV_AWS_STORAGE_BUCKET_NAME "
-            "environment variable."
+            "Default S3 bucket not configured. Set GV_AWS_STORAGE_BUCKET_NAME environment variable."
         )
 
     return bucket
@@ -141,7 +136,7 @@ def upload_to_s3(
     local_path: Union[str, Path, Image.Image],
     s3_key: str,
     bucket: str | None = None,
-    region: str = "us-east-1"
+    region: str = "us-east-1",
 ) -> tuple[str, str]:
     """
     Upload an image to S3 and return both S3 URI and HTTP URL.
@@ -168,16 +163,11 @@ def upload_to_s3(
     if isinstance(local_path, Image.Image):
         # Convert PIL Image to bytes
         img_byte_arr = BytesIO()
-        local_path.save(img_byte_arr, format='PNG')
+        local_path.save(img_byte_arr, format="PNG")
         img_bytes = img_byte_arr.getvalue()
 
         # Upload from bytes
-        s3_client.put_object(
-            Bucket=bucket,
-            Key=s3_key,
-            Body=img_bytes,
-            ContentType='image/png'
-        )
+        s3_client.put_object(Bucket=bucket, Key=s3_key, Body=img_bytes, ContentType="image/png")
     else:
         # Upload from file path
         local_path = Path(local_path)
@@ -185,15 +175,10 @@ def upload_to_s3(
             raise FileNotFoundError(f"File not found: {local_path}")
 
         # Determine content type from file extension
-        content_type = 'image/png' if local_path.suffix.lower() == '.png' else 'image/jpeg'
+        content_type = "image/png" if local_path.suffix.lower() == ".png" else "image/jpeg"
 
-        with local_path.open('rb') as f:
-            s3_client.put_object(
-                Bucket=bucket,
-                Key=s3_key,
-                Body=f,
-                ContentType=content_type
-            )
+        with local_path.open("rb") as f:
+            s3_client.put_object(Bucket=bucket, Key=s3_key, Body=f, ContentType=content_type)
 
     # Generate URLs
     s3_uri = f"s3://{bucket}/{s3_key}"
@@ -203,8 +188,7 @@ def upload_to_s3(
 
 
 def download_from_s3(
-    s3_uri: str,
-    local_path: Union[str, Path] | None = None
+    s3_uri: str, local_path: Union[str, Path] | None = None
 ) -> Union[Image.Image, str]:
     """
     Download an image from S3.
@@ -231,7 +215,7 @@ def download_from_s3(
     # Load as PIL Image and convert to a new image to ensure it's fully in memory
     with Image.open(buffer) as img:
         # Convert to RGB to ensure compatibility and copy to memory
-        image = img.convert('RGB').copy()
+        image = img.convert("RGB").copy()
 
     if local_path is None:
         # Return PIL Image object
@@ -244,9 +228,7 @@ def download_from_s3(
         return str(local_path)
 
 
-def load_image(
-    path: Union[str, Path, Image.Image]
-) -> Image.Image:
+def load_image(path: Union[str, Path, Image.Image]) -> Image.Image:
     """
     Load an image from either a local path or S3 URI.
 
@@ -280,9 +262,7 @@ def load_image(
 
 
 def save_image(
-    image: Image.Image,
-    output_location: Union[str, Path],
-    region: str = "us-east-1"
+    image: Image.Image, output_location: Union[str, Path], region: str = "us-east-1"
 ) -> tuple[str, str | None, str | None]:
     """
     Save an image to either local filesystem or S3.

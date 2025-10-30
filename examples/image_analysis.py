@@ -16,7 +16,7 @@ generator = GeminiImageGenerator()
 result = generator.generate(
     prompt="Analyze this image in detail. Describe the main objects, colors, mood, and setting.",
     input_images=["garden.png"],  # Use the image from basic_generation.py
-    output_text=True
+    output_text=True,
 )
 
 print("Image Analysis:")

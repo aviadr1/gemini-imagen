@@ -18,9 +18,9 @@ result = generator.generate(
     prompt="Blend the artistic style from Photo A with the composition from Photo B",
     input_images=[
         ("Photo A (style reference):", "garden.png"),
-        ("Photo B (composition reference):", "garden.png")  # Using same for demo
+        ("Photo B (composition reference):", "garden.png"),  # Using same for demo
     ],
-    output_images=["blended.png"]
+    output_images=["blended.png"],
 )
 
 print("✓ Blended image created!")

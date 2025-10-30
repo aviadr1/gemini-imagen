@@ -23,11 +23,8 @@ generator = GeminiImageGenerator(log_images=True)
 result = generator.generate(
     prompt="A magical forest with glowing mushrooms and fairy lights",
     output_images=["magical_forest.png"],
-    metadata={
-        "user_id": "demo_user",
-        "session": "example_run"
-    },
-    tags=["example", "demo", "magical-forest"]
+    metadata={"user_id": "demo_user", "session": "example_run"},
+    tags=["example", "demo", "magical-forest"],
 )
 
 print("✓ Image generated with LangSmith tracing!")

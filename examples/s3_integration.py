@@ -29,7 +29,7 @@ generator = GeminiImageGenerator(log_images=True)
 # Generate image directly to S3
 result = generator.generate(
     prompt="A futuristic cityscape at sunset with flying cars",
-    output_images=[f"s3://{aws_bucket}/examples/cityscape.png"]
+    output_images=[f"s3://{aws_bucket}/examples/cityscape.png"],
 )
 
 print("✓ Image uploaded to S3!")
@@ -40,7 +40,7 @@ print(f"  HTTP URL: {result.image_http_url}")
 result2 = generator.generate(
     prompt="Transform this into a cyberpunk style with neon lights",
     input_images=[result.image_s3_uri],  # Use the S3 URI as input
-    output_images=[f"s3://{aws_bucket}/examples/cityscape_cyberpunk.png"]
+    output_images=[f"s3://{aws_bucket}/examples/cityscape_cyberpunk.png"],
 )
 
 print("\n✓ Edited image uploaded to S3!")

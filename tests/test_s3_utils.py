@@ -68,7 +68,9 @@ class TestS3Operations:
     @patch("gemini_imagen.s3_utils.get_s3_client")
     @patch("gemini_imagen.s3_utils.parse_s3_uri")
     @patch("PIL.Image.open")
-    def test_download_from_s3(self, mock_image_open, mock_parse, mock_get_client, tmp_path, sample_image):
+    def test_download_from_s3(
+        self, mock_image_open, mock_parse, mock_get_client, tmp_path, sample_image
+    ):
         """Test downloading file from S3."""
         mock_s3 = MagicMock()
         mock_get_client.return_value = mock_s3
@@ -135,7 +137,7 @@ class TestImageOperations:
         # Mock upload_to_s3 to return (s3_uri, http_url)
         mock_upload.return_value = (
             "s3://test-bucket/test.png",
-            "https://test-bucket.s3.us-east-1.amazonaws.com/test.png"
+            "https://test-bucket.s3.us-east-1.amazonaws.com/test.png",
         )
 
         _location, s3_uri, http_url = save_image(sample_image, "s3://test-bucket/test.png")

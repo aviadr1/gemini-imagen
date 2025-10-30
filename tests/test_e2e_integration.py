@@ -37,7 +37,7 @@ class TestRealGeminiAPI:
         result = generator.generate(
             prompt="A simple red circle",
             output_images=["test_e2e_circle.png"],
-            run_name="test_basic_image_generation"
+            run_name="test_basic_image_generation",
         )
 
         assert result.image is not None
@@ -72,7 +72,7 @@ class TestRealS3Integration:
         result = generator.generate(
             prompt="A simple blue square",
             output_images=[s3_path],
-            run_name="test_s3_image_generation"
+            run_name="test_s3_image_generation",
         )
 
         assert result.image_s3_uri == s3_path
@@ -107,7 +107,7 @@ class TestRealLangSmithLogging:
             prompt="A simple test image for LangSmith logging",
             output_images=[("Test Image", s3_path)],
             run_name="test_langsmith_s3_url_logging",
-            tags=["pytest", "e2e", "langsmith-logging-test"]
+            tags=["pytest", "e2e", "langsmith-logging-test"],
         )
 
         assert result.image_s3_uri == s3_path
@@ -118,7 +118,11 @@ class TestRealLangSmithLogging:
         print("   Run name: test_langsmith_s3_url_logging")
         print(f"   S3 URI: {result.image_s3_uri}")
         print(f"   HTTP URL: {result.image_http_url}")
-        print("\n📊 Check LangSmith project 'gemini-imagen' for run 'test_langsmith_s3_url_logging'")
+        print(
+            "\n📊 Check LangSmith project 'gemini-imagen' for run 'test_langsmith_s3_url_logging'"
+        )
         print("   Tags: pytest, e2e, langsmith-logging-test")
-        print("   The run should have 'output_image_0_s3_uri' and 'output_image_0_http_url' in outputs")
+        print(
+            "   The run should have 'output_image_0_s3_uri' and 'output_image_0_http_url' in outputs"
+        )
         print("   URL: https://smith.langchain.com/o/YOURORG/projects/p/gemini-imagen")

@@ -12,9 +12,7 @@ class TestLangSmithIntegration:
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
     @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_s3_input_logging_to_langsmith(
-        self, mock_model, mock_get_run_tree, mock_env_vars
-    ):
+    def test_s3_input_logging_to_langsmith(self, mock_model, mock_get_run_tree, mock_env_vars):
         """Test that S3 input images are properly logged to LangSmith."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -38,10 +36,8 @@ class TestLangSmithIntegration:
             # Generate with S3 input
             generator.generate(
                 prompt="Test prompt",
-                input_images=[
-                    ("Test Image:", "s3://test-bucket/input.png")
-                ],
-                output_text=True
+                input_images=[("Test Image:", "s3://test-bucket/input.png")],
+                output_text=True,
             )
 
         # Verify S3 URLs were logged to LangSmith
@@ -83,7 +79,7 @@ class TestLangSmithIntegration:
             mock_save.return_value = (
                 "s3://test-bucket/output.png",
                 "s3://test-bucket/output.png",
-                "https://test-bucket.s3.us-east-1.amazonaws.com/output.png"
+                "https://test-bucket.s3.us-east-1.amazonaws.com/output.png",
             )
 
             # Create generator with logging enabled
@@ -91,8 +87,7 @@ class TestLangSmithIntegration:
 
             # Generate with S3 output
             generator.generate(
-                prompt="Test prompt",
-                output_images=[("Generated:", "s3://test-bucket/output.png")]
+                prompt="Test prompt", output_images=[("Generated:", "s3://test-bucket/output.png")]
             )
 
         # Verify S3 URLs were logged to LangSmith outputs
@@ -101,7 +96,10 @@ class TestLangSmithIntegration:
         assert "output_image_0_s3_uri" in mock_run_tree.outputs
         assert mock_run_tree.outputs["output_image_0_s3_uri"] == "s3://test-bucket/output.png"
         assert "output_image_0_http_url" in mock_run_tree.outputs
-        assert mock_run_tree.outputs["output_image_0_http_url"] == "https://test-bucket.s3.us-east-1.amazonaws.com/output.png"
+        assert (
+            mock_run_tree.outputs["output_image_0_http_url"]
+            == "https://test-bucket.s3.us-east-1.amazonaws.com/output.png"
+        )
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
     @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
@@ -125,9 +123,7 @@ class TestLangSmithIntegration:
 
         # Generate with local input
         generator.generate(
-            prompt="Test prompt",
-            input_images=[str(sample_image_path)],
-            output_text=True
+            prompt="Test prompt", input_images=[str(sample_image_path)], output_text=True
         )
 
         # Verify local path was logged to LangSmith
@@ -139,9 +135,7 @@ class TestLangSmithIntegration:
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
     @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_no_logging_when_disabled(
-        self, mock_model, mock_get_run_tree, mock_env_vars
-    ):
+    def test_no_logging_when_disabled(self, mock_model, mock_get_run_tree, mock_env_vars):
         """Test that nothing is logged when log_images=False."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -165,9 +159,7 @@ class TestLangSmithIntegration:
 
             # Generate with S3 input
             generator.generate(
-                prompt="Test prompt",
-                input_images=["s3://test-bucket/input.png"],
-                output_text=True
+                prompt="Test prompt", input_images=["s3://test-bucket/input.png"], output_text=True
             )
 
         # Verify nothing was logged
@@ -176,9 +168,7 @@ class TestLangSmithIntegration:
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
     @patch("gemini_imagen.gemini_image_wrapper.genai.GenerativeModel")
-    def test_multiple_s3_inputs_logged(
-        self, mock_model, mock_get_run_tree, mock_env_vars
-    ):
+    def test_multiple_s3_inputs_logged(self, mock_model, mock_get_run_tree, mock_env_vars):
         """Test that multiple S3 input images are all logged correctly."""
         # Setup mock run tree
         mock_run_tree = MagicMock()
@@ -207,7 +197,7 @@ class TestLangSmithIntegration:
                     ("Image B:", "s3://bucket/image2.png"),
                     ("Image C:", "s3://bucket/image3.png"),
                 ],
-                output_text=True
+                output_text=True,
             )
 
         # Verify all three images were logged

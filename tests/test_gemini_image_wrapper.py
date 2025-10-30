@@ -20,9 +20,7 @@ class TestGeminiImageGenerator:
     def test_initialization_with_custom_params(self, mock_env_vars):
         """Test initialization with custom parameters."""
         generator = GeminiImageGenerator(
-            model_name="custom-model",
-            api_key="custom_key",
-            log_images=True
+            model_name="custom-model", api_key="custom_key", log_images=True
         )
         assert generator.model_name == "custom-model"
         assert generator.log_images is True
@@ -37,10 +35,7 @@ class TestGeminiImageGenerator:
         mock_model.return_value.generate_content.return_value = mock_response
 
         generator = GeminiImageGenerator()
-        result = generator.generate(
-            prompt="Test prompt",
-            output_text=True
-        )
+        result = generator.generate(prompt="Test prompt", output_text=True)
 
         assert isinstance(result, GenerationResult)
         assert result.text == "Test response"
@@ -66,8 +61,7 @@ class TestGeminiImageGenerator:
             generator = GeminiImageGenerator()
             output_path = tmp_path / "output.png"
             result = generator.generate(
-                prompt="Generate an image",
-                output_images=[str(output_path)]
+                prompt="Generate an image", output_images=[str(output_path)]
             )
 
             assert isinstance(result, GenerationResult)
@@ -80,14 +74,12 @@ class TestGeminiImageGenerator:
 
         labeled_images = [
             ("Label 1:", str(sample_image_path)),
-            ("Label 2:", str(sample_image_path))
+            ("Label 2:", str(sample_image_path)),
         ]
 
         # Test that the method accepts labeled images without error
         content, image_infos = generator._build_content_with_labels(
-            prompt="Test prompt",
-            system_prompt=None,
-            input_images=labeled_images
+            prompt="Test prompt", system_prompt=None, input_images=labeled_images
         )
 
         # Check that labels are in the content
@@ -109,10 +101,7 @@ class TestGenerationResult:
 
     def test_result_with_single_image(self, sample_image):
         """Test result with a single image."""
-        result = GenerationResult(
-            images=[sample_image],
-            image_locations=["test.png"]
-        )
+        result = GenerationResult(images=[sample_image], image_locations=["test.png"])
         assert result.image == sample_image
         assert result.image_location == "test.png"
 
@@ -124,7 +113,7 @@ class TestGenerationResult:
         result = GenerationResult(
             images=[img1, img2],
             image_locations=["img1.png", "img2.png"],
-            image_labels=["Image 1", "Image 2"]
+            image_labels=["Image 1", "Image 2"],
         )
 
         assert len(result.images) == 2
@@ -141,7 +130,7 @@ class TestGenerationResult:
         """Test result with S3 URIs."""
         result = GenerationResult(
             image_s3_uris=["s3://bucket/image1.png", "s3://bucket/image2.png"],
-            image_http_urls=["https://bucket.s3.region.amazonaws.com/image1.png"]
+            image_http_urls=["https://bucket.s3.region.amazonaws.com/image1.png"],
         )
 
         assert len(result.image_s3_uris) == 2
@@ -155,18 +144,14 @@ class TestResponseModalities:
     def test_determine_modalities_text_only(self, mock_env_vars):
         """Test determining modalities for text-only output."""
         generator = GeminiImageGenerator()
-        modalities = generator._determine_response_modalities(
-            output_images=None,
-            output_text=True
-        )
+        modalities = generator._determine_response_modalities(output_images=None, output_text=True)
         assert modalities == ["TEXT"]
 
     def test_determine_modalities_image_only(self, mock_env_vars):
         """Test determining modalities for image-only output."""
         generator = GeminiImageGenerator()
         modalities = generator._determine_response_modalities(
-            output_images=["test.png"],
-            output_text=False
+            output_images=["test.png"], output_text=False
         )
         assert modalities == ["IMAGE"]
 
@@ -174,7 +159,6 @@ class TestResponseModalities:
         """Test determining modalities for both image and text."""
         generator = GeminiImageGenerator()
         modalities = generator._determine_response_modalities(
-            output_images=["test.png"],
-            output_text=True
+            output_images=["test.png"], output_text=True
         )
         assert set(modalities) == {"IMAGE", "TEXT"}

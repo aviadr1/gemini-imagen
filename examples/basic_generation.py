@@ -17,7 +17,7 @@ generator = GeminiImageGenerator()
 # Generate an image from a text prompt
 result = generator.generate(
     prompt="A serene Japanese garden with cherry blossoms in full bloom, koi pond, stone lanterns",
-    output_images=["garden.png"]
+    output_images=["garden.png"],
 )
 
 print("✓ Image generated successfully!")
