@@ -16,9 +16,8 @@
 
 ### Linters and Formatters
 - **Ruff**: Used for both linting and formatting
-  - Run linter: `uv run ruff check --fix --unsafe-fixes src/ examples/`
+  - Run linter: `uv run ruff check --fix src/ examples/`
   - Run formatter: `uv run ruff format src/ examples/`
-  - The `--unsafe-fixes` flag is important to enable all available autofixes
 - **mypy**: Type checking with `--ignore-missing-imports` flag
   - Run: `uv run mypy src/gemini_imagen --ignore-missing-imports`
 - **isort**: Import sorting (configured with black profile, line length 100)

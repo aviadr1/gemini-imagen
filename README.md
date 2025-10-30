@@ -449,6 +449,49 @@ make pre-commit
 
 ### Building and Publishing
 
+#### Quick Release Process
+
+**Step 1: Bump version**
+```bash
+# Bump patch version (0.1.0 -> 0.1.1)
+uv run python scripts/bump_version.py patch
+
+# Bump minor version (0.1.0 -> 0.2.0)
+uv run python scripts/bump_version.py minor
+
+# Bump major version (0.1.0 -> 1.0.0)
+uv run python scripts/bump_version.py major
+
+# Or set specific version
+uv run python scripts/bump_version.py 1.2.3
+```
+
+**Step 2: Commit and tag**
+```bash
+git add pyproject.toml
+git commit -m "Bump version to X.Y.Z"
+git tag vX.Y.Z
+git push && git push --tags
+```
+
+**Step 3: Build and publish**
+```bash
+# Test release (uploads to TestPyPI)
+./scripts/release.sh --test
+
+# Production release (uploads to PyPI)
+./scripts/release.sh
+```
+
+The release script will:
+- Run linters (ruff + mypy)
+- Run tests
+- Build the package
+- Verify with twine
+- Upload to PyPI (with confirmation)
+
+#### Manual Build/Publish
+
 ```bash
 # Build package
 make build

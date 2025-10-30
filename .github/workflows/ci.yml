@@ -25,7 +25,7 @@ jobs:
         run: uv sync --extra dev --extra s3
 
       - name: Run ruff (linter)
-        run: uv run ruff check --fix --unsafe-fixes src/ examples/
+        run: uv run ruff check --fix src/ examples/
 
       - name: Run ruff (formatter)
         run: uv run ruff format src/ examples/
