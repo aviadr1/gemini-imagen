@@ -6,6 +6,7 @@ Run with: pytest tests/test_e2e_integration.py -v -s
 """
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -41,10 +42,12 @@ class TestRealGeminiAPI:
 
         assert result.image is not None
         assert result.image.size == (1024, 1024)
-        assert os.path.exists("test_e2e_circle.png")
+
+        test_file = Path("test_e2e_circle.png")
+        assert test_file.exists()
 
         # Cleanup
-        os.remove("test_e2e_circle.png")
+        test_file.unlink()
 
 
 @requires_google_api_key()

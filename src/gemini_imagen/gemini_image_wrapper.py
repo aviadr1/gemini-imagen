@@ -51,13 +51,12 @@ import os
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import google.generativeai as genai
 from dotenv import load_dotenv
 from google.generativeai.types import GenerateContentResponse
 from langsmith import get_current_run_tree, traceable
-from langsmith.run_trees import RunTree
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -68,6 +67,9 @@ from .s3_utils import (
     parse_s3_uri,
     save_image,
 )
+
+if TYPE_CHECKING:
+    from langsmith.run_trees import RunTree
 
 # Load environment variables
 load_dotenv()
@@ -207,8 +209,8 @@ class GeminiImageGenerator:
 
         # LangSmith configuration
         run_name: str | None = None,
-        metadata: dict[str, str] | None = None,
-        tags: list[str] | None = None
+        metadata: dict[str, str] | None = None,  # noqa: ARG002 - used by @traceable decorator
+        tags: list[str] | None = None  # noqa: ARG002 - used by @traceable decorator
     ) -> GenerationResult:
         """
         Unified generation function with support for:
@@ -556,7 +558,7 @@ class GeminiImageGenerator:
     ) -> None:
         """Save generated images and log to LangSmith."""
         # Match images with output specs
-        for idx, (img, (label, location)) in enumerate(zip(result.images, output_specs)):
+        for idx, (img, (label, location)) in enumerate(zip(result.images, output_specs, strict=False)):
             # Save the image
             location_str, s3_uri, http_url = save_image(img, location)
 

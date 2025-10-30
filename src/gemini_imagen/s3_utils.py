@@ -9,17 +9,25 @@ supporting both local file paths and S3 URIs.
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
-import boto3
 from dotenv import load_dotenv
 from PIL import Image
+
+# Conditional boto3 import
+try:
+    import boto3
+    HAS_BOTO3 = True
+except ImportError:
+    HAS_BOTO3 = False
+    if not TYPE_CHECKING:
+        boto3 = None  # type: ignore
 
 # Load environment variables
 load_dotenv()
 
 
-def get_s3_client() -> boto3.client:
+def get_s3_client() -> "boto3.client":  # type: ignore
     """
     Create and return an S3 client using credentials from environment variables.
 
@@ -28,7 +36,14 @@ def get_s3_client() -> boto3.client:
 
     Raises:
         ValueError: If required AWS credentials are not found
+        ImportError: If boto3 is not installed
     """
+    if not HAS_BOTO3:
+        raise ImportError(
+            "boto3 is required for S3 operations. "
+            "Install it with: pip install gemini-imagen[s3]"
+        )
+
     access_key = os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("GV_AWS_SECRET_ACCESS_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
 
@@ -172,7 +187,7 @@ def upload_to_s3(
         # Determine content type from file extension
         content_type = 'image/png' if local_path.suffix.lower() == '.png' else 'image/jpeg'
 
-        with open(local_path, 'rb') as f:
+        with local_path.open('rb') as f:
             s3_client.put_object(
                 Bucket=bucket,
                 Key=s3_key,

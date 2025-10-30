@@ -56,19 +56,19 @@ __all__ = [
     # Main API
     "GeminiImageGenerator",
     "GenerationResult",
+    "ImageType",
     # Enums
     "ResponseModality",
-    "ImageType",
-    # S3 utilities
-    "load_image",
-    "save_image",
-    "upload_to_s3",
     "download_from_s3",
-    "is_s3_uri",
-    "parse_s3_uri",
+    "get_default_bucket",
     "get_http_url",
     "get_s3_client",
-    "get_default_bucket",
+    "is_s3_uri",
+    # S3 utilities
+    "load_image",
+    "parse_s3_uri",
+    "save_image",
+    "upload_to_s3",
 ]
 
 __version__ = "0.1.0"

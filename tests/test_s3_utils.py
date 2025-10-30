@@ -138,7 +138,7 @@ class TestImageOperations:
             "https://test-bucket.s3.us-east-1.amazonaws.com/test.png"
         )
 
-        location, s3_uri, http_url = save_image(sample_image, "s3://test-bucket/test.png")
+        _location, s3_uri, http_url = save_image(sample_image, "s3://test-bucket/test.png")
 
         assert s3_uri == "s3://test-bucket/test.png"
         assert http_url == "https://test-bucket.s3.us-east-1.amazonaws.com/test.png"
