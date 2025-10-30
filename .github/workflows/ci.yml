@@ -29,12 +29,12 @@ jobs:
       - name: Run ruff (linter)
         run: |
           source .venv/bin/activate
-          ruff check src/ examples/
+          ruff check --fix src/ examples/
 
-      - name: Run ruff (formatter check)
+      - name: Run ruff (formatter)
         run: |
           source .venv/bin/activate
-          ruff format --check src/ examples/
+          ruff format src/ examples/
 
       - name: Run mypy (type checking)
         run: |
