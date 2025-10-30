@@ -1,0 +1,11 @@
+# Code owners for gemini-imagen
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @aviadr1
+
+# Specific owners for different areas
+/src/ @aviadr1
+/tests/ @aviadr1
+/examples/ @aviadr1
+/.github/ @aviadr1

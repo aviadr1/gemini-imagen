@@ -3,6 +3,8 @@
 [![PyPI version](https://badge.fury.io/py/gemini-imagen.svg)](https://badge.fury.io/py/gemini-imagen)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/aviadr1/gemini-imagen/actions/workflows/ci.yml/badge.svg)](https://github.com/aviadr1/gemini-imagen/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/aviadr1/gemini-imagen/branch/main/graph/badge.svg)](https://codecov.io/gh/aviadr1/gemini-imagen)
 
 A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities, featuring:
 
@@ -349,6 +351,74 @@ See the [`examples/`](examples/) directory for complete working examples:
 - **Multiple images**: Gemini may not always generate the exact number requested
 - **Structured output**: Only available with text model (separate call required)
 - **Rate limits** (free tier): 10 requests/minute, 1500/day
+
+## Development
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/aviadr1/gemini-imagen.git
+cd gemini-imagen
+
+# Install with development dependencies
+pip install -e ".[dev,s3]"
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Run with coverage
+pytest tests/ -v --cov=gemini_imagen --cov-report=html
+
+# Run specific test file
+pytest tests/test_gemini_image_wrapper.py -v
+```
+
+### Code Quality
+
+```bash
+# Run linter
+make lint
+
+# Format code
+make format
+
+# Run pre-commit hooks
+make pre-commit
+```
+
+### Building and Publishing
+
+```bash
+# Build package
+make build
+
+# Publish to PyPI (requires credentials)
+make publish
+```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration:
+
+- **CI Pipeline**: Runs on every push and pull request
+  - Linting with ruff
+  - Type checking with mypy
+  - Tests on Python 3.12 and 3.13
+  - Code coverage reporting
+
+- **Release Pipeline**: Automatically publishes to PyPI on version tags
+  - Triggered by pushing tags like `v1.0.0`
+  - Creates GitHub releases with artifacts
+
+- **Dependabot**: Automatically updates dependencies weekly
 
 ## Contributing
 
