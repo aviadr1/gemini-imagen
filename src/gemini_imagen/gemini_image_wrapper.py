@@ -417,15 +417,25 @@ class GeminiImageGenerator:
             if is_s3_uri(img_path):
                 bucket, key = parse_s3_uri(img_path)
                 http_url = get_http_url(bucket, key)
-                info = ImageInfo(label=label, type=ImageType.S3, s3_uri=img_path, http_url=http_url)
+                info = ImageInfo(
+                    label=label,
+                    type=ImageType.S3,
+                    s3_uri=img_path,
+                    http_url=http_url,
+                    local_path=None,
+                )
             else:
-                info = ImageInfo(label=label, type=ImageType.LOCAL, local_path=img_path)
+                info = ImageInfo(
+                    label=label, type=ImageType.LOCAL, local_path=img_path, s3_uri=None, http_url=None
+                )
 
             loaded_img = load_image(img_source)
         else:
             # PIL Image object
             loaded_img = img_source
-            info = ImageInfo(label=label, type=ImageType.PIL)
+            info = ImageInfo(
+                label=label, type=ImageType.PIL, s3_uri=None, http_url=None, local_path=None
+            )
 
         return loaded_img, info
 
@@ -470,11 +480,11 @@ class GeminiImageGenerator:
         if temperature is not None:
             generation_config["temperature"] = temperature
 
-        return self.model.generate_content(content, generation_config=generation_config)
+        return self.model.generate_content(content, generation_config=generation_config)  # type: ignore[arg-type]
 
     def _extract_response(self, response: GenerateContentResponse) -> GenerationResult:
         """Extract text and images from Gemini response."""
-        result = GenerationResult()
+        result = GenerationResult(text=None, structured=None)
 
         if not response.candidates:
             raise ValueError("No candidates in response")

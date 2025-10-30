@@ -9,26 +9,30 @@ supporting both local file paths and S3 URIs.
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from dotenv import load_dotenv
 from PIL import Image
 
 # Conditional boto3 import
-try:
+if TYPE_CHECKING:
     import boto3
 
     HAS_BOTO3 = True
-except ImportError:
-    HAS_BOTO3 = False
-    if not TYPE_CHECKING:
-        boto3 = None  # type: ignore
+else:
+    try:
+        import boto3
+
+        HAS_BOTO3 = True
+    except ImportError:
+        HAS_BOTO3 = False
+        boto3 = None  # type: ignore[assignment]
 
 # Load environment variables
 load_dotenv()
 
 
-def get_s3_client() -> "boto3.client":  # type: ignore
+def get_s3_client() -> Any:  # boto3.client
     """
     Create and return an S3 client using credentials from environment variables.
 
@@ -53,7 +57,7 @@ def get_s3_client() -> "boto3.client":  # type: ignore
             "environment variables."
         )
 
-    return boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+    return boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key)  # type: ignore[union-attr]
 
 
 def get_default_bucket() -> str:
@@ -167,7 +171,7 @@ def upload_to_s3(
         img_bytes = img_byte_arr.getvalue()
 
         # Upload from bytes
-        s3_client.put_object(Bucket=bucket, Key=s3_key, Body=img_bytes, ContentType="image/png")
+        s3_client.put_object(Bucket=bucket, Key=s3_key, Body=img_bytes, ContentType="image/png")  # type: ignore[union-attr]
     else:
         # Upload from file path
         local_path = Path(local_path)
@@ -178,7 +182,7 @@ def upload_to_s3(
         content_type = "image/png" if local_path.suffix.lower() == ".png" else "image/jpeg"
 
         with local_path.open("rb") as f:
-            s3_client.put_object(Bucket=bucket, Key=s3_key, Body=f, ContentType=content_type)
+            s3_client.put_object(Bucket=bucket, Key=s3_key, Body=f, ContentType=content_type)  # type: ignore[union-attr]
 
     # Generate URLs
     s3_uri = f"s3://{bucket}/{s3_key}"
@@ -209,7 +213,7 @@ def download_from_s3(
 
     # Download to BytesIO buffer
     buffer = BytesIO()
-    s3_client.download_fileobj(bucket, key, buffer)
+    s3_client.download_fileobj(bucket, key, buffer)  # type: ignore[union-attr]
     buffer.seek(0)
 
     # Load as PIL Image and convert to a new image to ensure it's fully in memory
@@ -251,7 +255,11 @@ def load_image(path: Union[str, Path, Image.Image]) -> Image.Image:
 
     # If S3 URI, download from S3
     if is_s3_uri(path):
-        return download_from_s3(path)
+        result = download_from_s3(str(path))
+        if isinstance(result, str):
+            # Shouldn't happen when local_path is None, but satisfy mypy
+            return Image.open(result)
+        return result
 
     # Otherwise, load from local path
     local_path = Path(path)
@@ -283,7 +291,7 @@ def save_image(
     """
     # If S3 URI, upload to S3
     if is_s3_uri(output_location):
-        bucket, key = parse_s3_uri(output_location)
+        bucket, key = parse_s3_uri(str(output_location))
         s3_uri, http_url = upload_to_s3(image, key, bucket, region)
         return s3_uri, s3_uri, http_url
 
