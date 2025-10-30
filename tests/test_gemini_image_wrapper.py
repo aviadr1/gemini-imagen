@@ -86,7 +86,7 @@ class TestGeminiImageGenerator:
 
         # Test that the method accepts labeled images without error
         content, image_infos = generator._build_content_with_labels(
-            prompt="Test prompt", system_prompt=None, input_images=labeled_images
+            prompt="Test prompt", input_images=labeled_images
         )
 
         # Check that labels are in the content

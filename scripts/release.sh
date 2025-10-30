@@ -45,7 +45,25 @@ fi
 OLD_VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
 echo -e "${GREEN}Current version: ${OLD_VERSION}${NC}"
 
-# Bump version
+# Ensure dependencies are installed FIRST
+echo -e "${GREEN}Installing dependencies...${NC}"
+uv sync --extra dev --extra s3
+
+# Clean previous builds
+echo -e "${GREEN}Cleaning previous builds...${NC}"
+rm -rf dist/ build/ *.egg-info
+
+# Run linters BEFORE bumping version
+echo -e "${GREEN}Running linters...${NC}"
+uv run ruff check --fix src/ examples/
+uv run ruff format src/ examples/
+uv run mypy src/gemini_imagen --ignore-missing-imports
+
+# Run tests BEFORE bumping version
+echo -e "${GREEN}Running tests...${NC}"
+uv run pytest tests/ -v -m "not integration"
+
+# NOW bump version after all checks pass
 echo -e "${GREEN}Bumping ${BUMP_TYPE} version...${NC}"
 uv run python scripts/bump_version.py "$BUMP_TYPE"
 
@@ -68,24 +86,6 @@ git tag "v${VERSION}"
 
 echo -e "${GREEN}Pushing commit and tag...${NC}"
 git push && git push --tags
-
-# Ensure dependencies are installed
-echo -e "${GREEN}Installing dependencies...${NC}"
-uv sync --extra dev --extra s3
-
-# Clean previous builds
-echo -e "${GREEN}Cleaning previous builds...${NC}"
-rm -rf dist/ build/ *.egg-info
-
-# Run linters
-echo -e "${GREEN}Running linters...${NC}"
-uv run ruff check --fix src/ examples/
-uv run ruff format src/ examples/
-uv run mypy src/gemini_imagen --ignore-missing-imports
-
-# Run tests
-echo -e "${GREEN}Running tests...${NC}"
-uv run pytest tests/ -v -m "not integration"
 
 # Build package
 echo -e "${GREEN}Building package...${NC}"
