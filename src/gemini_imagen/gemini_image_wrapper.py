@@ -205,6 +205,8 @@ class GeminiImageGenerator:
         output_images: list[OutputImageSpec] | None = None,
         output_text: bool = False,
 
+        # LangSmith configuration
+        run_name: str | None = None,
         metadata: dict[str, str] | None = None,
         tags: list[str] | None = None
     ) -> GenerationResult:
@@ -296,6 +298,15 @@ class GeminiImageGenerator:
                 output_text=True
             )
         """
+        # Set LangSmith run name if provided
+        if run_name:
+            try:
+                run_tree = get_current_run_tree()
+                if run_tree:
+                    run_tree.name = run_name
+            except Exception:
+                pass  # Silently ignore if LangSmith not available
+
         # Determine response modalities
         modalities = self._determine_response_modalities(
             output_images=output_images,

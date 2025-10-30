@@ -11,9 +11,17 @@ import pytest
 
 from tests.conftest import requires_aws_credentials, requires_google_api_key, requires_langsmith
 
-
 # Mark entire module to run only when requested
 pytestmark = pytest.mark.integration
+
+
+# Set LangSmith project for all tests in this module
+@pytest.fixture(autouse=True)
+def set_langsmith_project():
+    """Set LangSmith project name for all tests."""
+    os.environ["LANGSMITH_PROJECT"] = "gemini-imagen"
+    yield
+    # Cleanup not needed as env vars are per-process
 
 
 @requires_google_api_key()
@@ -27,7 +35,8 @@ class TestRealGeminiAPI:
         generator = GeminiImageGenerator(log_images=False)
         result = generator.generate(
             prompt="A simple red circle",
-            output_images=["test_e2e_circle.png"]
+            output_images=["test_e2e_circle.png"],
+            run_name="test_basic_image_generation"
         )
 
         assert result.image is not None
@@ -46,6 +55,7 @@ class TestRealS3Integration:
     def test_s3_image_generation(self):
         """Test image generation with S3 output."""
         from datetime import datetime
+
         from gemini_imagen import GeminiImageGenerator
 
         aws_bucket = os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
@@ -58,7 +68,8 @@ class TestRealS3Integration:
         generator = GeminiImageGenerator(log_images=False)
         result = generator.generate(
             prompt="A simple blue square",
-            output_images=[s3_path]
+            output_images=[s3_path],
+            run_name="test_s3_image_generation"
         )
 
         assert result.image_s3_uri == s3_path
@@ -75,6 +86,7 @@ class TestRealLangSmithLogging:
         """Test that S3 URLs are actually logged to LangSmith."""
         import os
         from datetime import datetime
+
         from gemini_imagen import GeminiImageGenerator
 
         # Enable LangSmith
@@ -91,15 +103,19 @@ class TestRealLangSmithLogging:
         result = generator.generate(
             prompt="A simple test image for LangSmith logging",
             output_images=[("Test Image", s3_path)],
+            run_name="test_langsmith_s3_url_logging",
             tags=["pytest", "e2e", "langsmith-logging-test"]
         )
 
         assert result.image_s3_uri == s3_path
         assert result.image_http_url is not None
 
-        print(f"\n✅ Image generated and logged to LangSmith")
+        print("\n✅ Image generated and logged to LangSmith")
+        print("   Project: gemini-imagen")
+        print("   Run name: test_langsmith_s3_url_logging")
         print(f"   S3 URI: {result.image_s3_uri}")
         print(f"   HTTP URL: {result.image_http_url}")
-        print(f"\n📊 Check LangSmith for a run with tags: pytest, e2e, langsmith-logging-test")
-        print(f"   The run should have 'output_image_0_s3_uri' and 'output_image_0_http_url' in outputs")
-        print(f"   URL: https://smith.langchain.com/")
+        print("\n📊 Check LangSmith project 'gemini-imagen' for run 'test_langsmith_s3_url_logging'")
+        print("   Tags: pytest, e2e, langsmith-logging-test")
+        print("   The run should have 'output_image_0_s3_uri' and 'output_image_0_http_url' in outputs")
+        print("   URL: https://smith.langchain.com/o/YOURORG/projects/p/gemini-imagen")

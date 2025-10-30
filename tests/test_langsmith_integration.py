@@ -1,12 +1,10 @@
 """Integration tests for LangSmith tracing with S3 logging."""
 
-import os
 from unittest.mock import MagicMock, patch
 
-import pytest
 from PIL import Image
 
-from gemini_imagen import GeminiImageGenerator, ImageType
+from gemini_imagen import GeminiImageGenerator
 
 
 class TestLangSmithIntegration:

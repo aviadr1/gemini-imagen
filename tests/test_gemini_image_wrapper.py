@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from PIL import Image
 
 from gemini_imagen import GeminiImageGenerator, GenerationResult
