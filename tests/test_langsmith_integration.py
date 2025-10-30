@@ -12,7 +12,9 @@ class TestLangSmithIntegration:
 
     @patch("gemini_imagen.gemini_image_wrapper.get_current_run_tree")
     @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
-    def test_s3_input_logging_to_langsmith(self, mock_client_class, mock_get_run_tree, mock_env_vars):
+    def test_s3_input_logging_to_langsmith(
+        self, mock_client_class, mock_get_run_tree, mock_env_vars
+    ):
         """Test that S3 input images are properly logged to LangSmith."""
         # Setup mock run tree
         mock_run_tree = MagicMock()

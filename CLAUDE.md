@@ -18,6 +18,7 @@
 - **Ruff**: Used for both linting and formatting
   - Run linter: `uv run ruff check --fix src/ examples/`
   - Run formatter: `uv run ruff format src/ examples/`
+  - **IMPORTANT**: Never use `--unsafe-fixes` - fix issues manually instead
 - **mypy**: Type checking with `--ignore-missing-imports` flag
   - Run: `uv run mypy src/gemini_imagen --ignore-missing-imports`
 - **isort**: Import sorting (configured with black profile, line length 100)
@@ -40,9 +41,10 @@
    - Runs all pre-commit hooks on pull requests and pushes
 
 ### Linter Configuration Philosophy
-- Linters should **autofix** issues instead of just reporting failures
+- Linters should **autofix** safe issues instead of just reporting failures
 - This improves developer experience by having tooling fix issues automatically
-- Both pre-commit and CI are configured to apply fixes
+- Both pre-commit and CI are configured to apply safe fixes only
+- **Never use `--unsafe-fixes`** - these must be fixed manually to ensure code correctness
 
 ## Project Structure
 
@@ -77,9 +79,10 @@
 - Use field-level `exclude=True` for excluding specific fields
 
 ### Ruff Unsafe Fixes
-- Some ruff fixes are marked as "unsafe" and require explicit opt-in
+- Some ruff fixes are marked as "unsafe" and should NOT be auto-applied
 - Example: Converting `isinstance(x, (str, Path))` to `isinstance(x, str | Path)`
-- Always use `--unsafe-fixes` flag in both pre-commit and CI
+- **NEVER use `--unsafe-fixes`** - fix these issues manually to ensure correctness
+- This prevents accidental breaking changes from automated fixes
 
 ## Integration with External Services
 

@@ -60,13 +60,7 @@ from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from .s3_utils import (
-    get_http_url,
-    is_s3_uri,
-    load_image,
-    parse_s3_uri,
-    save_image,
-)
+from .s3_utils import get_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
 if TYPE_CHECKING:
     from langsmith.run_trees import RunTree
@@ -417,7 +411,7 @@ class GeminiImageGenerator:
         self, img_source: RawImageSource, label: str | None
     ) -> tuple[Image.Image, ImageInfo]:
         """Load a single image and create its metadata."""
-        if isinstance(img_source, (str, Path)):
+        if isinstance(img_source, str | Path):
             img_path = str(img_source)
 
             # Create metadata for logging

@@ -96,8 +96,8 @@ def main() -> None:
     # Update version
     update_version(pyproject_path, new_version)
     print(f"Updated version: {new_version}")
-    print(f"\nNote: Version updated in pyproject.toml")
-    print(f"This is typically called by release.sh, not directly.")
+    print("\nNote: Version updated in pyproject.toml")
+    print("This is typically called by release.sh, not directly.")
 
 
 if __name__ == "__main__":

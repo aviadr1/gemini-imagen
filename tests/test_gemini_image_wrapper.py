@@ -46,7 +46,9 @@ class TestGeminiImageGenerator:
         assert len(result.images) == 0
 
     @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
-    def test_generate_with_image_output(self, mock_client_class, mock_env_vars, tmp_path, mock_langsmith):
+    def test_generate_with_image_output(
+        self, mock_client_class, mock_env_vars, tmp_path, mock_langsmith
+    ):
         """Test generating image output."""
         # Setup mock response with image data
         mock_response = MagicMock()
