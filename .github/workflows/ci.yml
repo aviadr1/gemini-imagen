@@ -22,24 +22,16 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev,s3]"
+        run: uv sync --extra dev --extra s3
 
       - name: Run ruff (linter)
-        run: |
-          source .venv/bin/activate
-          ruff check --fix --unsafe-fixes src/ examples/
+        run: uv run ruff check --fix --unsafe-fixes src/ examples/
 
       - name: Run ruff (formatter)
-        run: |
-          source .venv/bin/activate
-          ruff format src/ examples/
+        run: uv run ruff format src/ examples/
 
       - name: Run mypy (type checking)
-        run: |
-          source .venv/bin/activate
-          mypy src/gemini_imagen --ignore-missing-imports
+        run: uv run mypy src/gemini_imagen --ignore-missing-imports
 
   test:
     name: Test Python ${{ matrix.python-version }}
@@ -60,14 +52,10 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev,s3]"
+        run: uv sync --extra dev --extra s3
 
       - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest tests/ -v --cov=gemini_imagen --cov-report=xml --cov-report=term
+        run: uv run pytest tests/ -v --cov=gemini_imagen --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -94,9 +82,7 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev,s3]"
+        run: uv sync --extra dev --extra s3
 
       - name: Run integration tests
         env:
@@ -107,9 +93,7 @@ jobs:
           GV_AWS_ACCESS_KEY_ID: ${{ secrets.GV_AWS_ACCESS_KEY_ID }}
           GV_AWS_SECRET_ACCESS_KEY: ${{ secrets.GV_AWS_SECRET_ACCESS_KEY }}
           GV_AWS_STORAGE_BUCKET_NAME: ${{ secrets.GV_AWS_STORAGE_BUCKET_NAME }}
-        run: |
-          source .venv/bin/activate
-          pytest tests/ -v -m integration --tb=short
+        run: uv run pytest tests/ -v -m integration --tb=short
 
   build:
     name: Build Package

@@ -5,7 +5,8 @@
 ### Package Manager
 - This project uses `uv` for Python package management
 - Always use `uv run` to run Python commands in the project context
-- Use `uv venv` to create virtual environments and `uv pip install` for dependencies
+- Use `uv sync` to install dependencies (not `uv pip install`)
+- Use `uv sync --extra dev --extra s3` to install with optional dependencies
 
 ### Python Version
 - Requires Python >= 3.12
