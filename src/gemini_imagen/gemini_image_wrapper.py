@@ -339,7 +339,10 @@ class GeminiImageGenerator:
 
         # Call Gemini API
         response = self._call_gemini(
-            content=content, system_prompt=system_prompt, temperature=temperature, modalities=modalities
+            content=content,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            modalities=modalities,
         )
 
         # Extract and process results
@@ -497,7 +500,7 @@ class GeminiImageGenerator:
 
         return self.client.models.generate_content(
             model=self.model_name,
-            contents=content,
+            contents=content,  # type: ignore[arg-type]
             config=config,
         )
 
