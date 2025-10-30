@@ -25,7 +25,13 @@ install-dev:
 	pre-commit install
 
 test:
+	uv run pytest tests/ -v -m "not integration" --cov=gemini_imagen --cov-report=term --cov-report=html
+
+test-all:
 	uv run pytest tests/ -v --cov=gemini_imagen --cov-report=term --cov-report=html
+
+test-integration:
+	uv run pytest tests/ -v -m integration
 
 lint:
 	uv run ruff check src/ examples/ tests/

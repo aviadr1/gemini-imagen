@@ -6,6 +6,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image
+from dotenv import load_dotenv
+
+# Load environment variables for tests
+load_dotenv()
 
 
 @pytest.fixture
@@ -57,3 +61,33 @@ def mock_langsmith():
         # Make the decorator work as a pass-through
         mock_traceable.side_effect = lambda *args, **kwargs: lambda f: f
         yield mock_traceable
+
+
+# Helper functions for skipping tests that require secrets
+def requires_google_api_key():
+    """Skip test if GOOGLE_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("GOOGLE_API_KEY"),
+        reason="GOOGLE_API_KEY environment variable not set. Set it to run this test."
+    )
+
+
+def requires_aws_credentials():
+    """Skip test if AWS credentials are not set."""
+    has_creds = (
+        os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+    ) and (
+        os.getenv("GV_AWS_SECRET_ACCESS_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
+    )
+    return pytest.mark.skipif(
+        not has_creds,
+        reason="AWS credentials not set. Set GV_AWS_ACCESS_KEY_ID and GV_AWS_SECRET_ACCESS_KEY to run this test."
+    )
+
+
+def requires_langsmith():
+    """Skip test if LangSmith API key is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("LANGSMITH_API_KEY"),
+        reason="LANGSMITH_API_KEY environment variable not set. Set it to run this test."
+    )

@@ -97,6 +97,9 @@ addopts = [
     "--cov=gemini_imagen",
     "--cov-report=term-missing",
 ]
+markers = [
+    "integration: marks tests as integration tests that require real API keys (deselect with '-m \"not integration\"')",
+]
 
 [tool.black]
 line-length = 100

@@ -407,11 +407,14 @@ pre-commit install
 
 **Using uv:**
 ```bash
-# Run all tests
+# Run unit tests only (no API keys required)
+uv run pytest tests/ -v -m "not integration"
+
+# Run all tests including integration (requires API keys)
 uv run pytest tests/ -v
 
 # Run with coverage
-uv run pytest tests/ -v --cov=gemini_imagen --cov-report=html
+uv run pytest tests/ -v -m "not integration" --cov=gemini_imagen --cov-report=html
 
 # Run specific test file
 uv run pytest tests/test_gemini_image_wrapper.py -v
@@ -419,8 +422,17 @@ uv run pytest tests/test_gemini_image_wrapper.py -v
 
 **Using make (with uv):**
 ```bash
-make test    # Runs: uv run pytest
+make test    # Runs: uv run pytest (unit tests only)
 ```
+
+**Test Categories:**
+- **Unit tests**: Mocked tests, no API keys required
+- **Integration tests**: Require real API keys (`-m integration`)
+  - `GOOGLE_API_KEY` - for Gemini API tests
+  - `GV_AWS_*` - for S3 integration tests
+  - `LANGSMITH_API_KEY` - for LangSmith tracing tests
+
+Integration tests are automatically skipped if credentials are missing.
 
 ### Code Quality
 
