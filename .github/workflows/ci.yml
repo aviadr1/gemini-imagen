@@ -77,6 +77,40 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv pip install -e ".[dev,s3]"
+
+      - name: Run integration tests
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: "true"
+          LANGSMITH_PROJECT: "gemini-imagen"
+          GV_AWS_ACCESS_KEY_ID: ${{ secrets.GV_AWS_ACCESS_KEY_ID }}
+          GV_AWS_SECRET_ACCESS_KEY: ${{ secrets.GV_AWS_SECRET_ACCESS_KEY }}
+          GV_AWS_STORAGE_BUCKET_NAME: ${{ secrets.GV_AWS_STORAGE_BUCKET_NAME }}
+        run: |
+          source .venv/bin/activate
+          pytest tests/ -v -m integration --tb=short
+
   build:
     name: Build Package
     runs-on: ubuntu-latest
