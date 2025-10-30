@@ -24,7 +24,7 @@ if [ "$1" == "--test" ]; then
 fi
 
 # Get current version
-VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
 echo -e "${GREEN}Building version: ${VERSION}${NC}"
 
 # Check git status
