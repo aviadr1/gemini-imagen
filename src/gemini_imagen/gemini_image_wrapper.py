@@ -332,14 +332,14 @@ class GeminiImageGenerator:
         )
 
         # Load and prepare input images with labels
-        content, image_infos = self._build_content_with_labels(prompt, system_prompt, input_images)
+        content, image_infos = self._build_content_with_labels(prompt, input_images)
 
         # Log input images
         self._log_input_images(image_infos)
 
         # Call Gemini API
         response = self._call_gemini(
-            content=content, temperature=temperature, modalities=modalities
+            content=content, system_prompt=system_prompt, temperature=temperature, modalities=modalities
         )
 
         # Extract and process results
@@ -373,20 +373,19 @@ class GeminiImageGenerator:
         return modalities if modalities else [ResponseModality.IMAGE.value]
 
     def _build_content_with_labels(
-        self, prompt: str, system_prompt: str | None, input_images: list[ImageSource] | None
+        self, prompt: str, input_images: list[ImageSource] | None
     ) -> tuple[list[Union[str, Image.Image, dict[str, Any]]], list[ImageInfo]]:
         """
         Build content list with labeled images interleaved.
 
         Returns:
             (content_list, image_infos)
+
+        Note: system_prompt is handled separately in _call_gemini() via the
+        config's system_instruction parameter, not in the content list.
         """
         content: list[Union[str, Image.Image, dict[str, Any]]] = []
         image_infos: list[ImageInfo] = []
-
-        # Add system prompt if provided
-        if system_prompt:
-            content.append({"role": "system", "parts": [{"text": system_prompt}]})
 
         # Process input images with labels
         if input_images:
@@ -477,6 +476,7 @@ class GeminiImageGenerator:
     def _call_gemini(
         self,
         content: list[Union[str, Image.Image, dict[str, Any]]],
+        system_prompt: str | None,
         temperature: float | None,
         modalities: list[str],
     ) -> types.GenerateContentResponse:
@@ -488,6 +488,10 @@ class GeminiImageGenerator:
         # Add temperature if specified
         if temperature is not None:
             config_params["temperature"] = temperature
+
+        # Add system instruction if specified
+        if system_prompt is not None:
+            config_params["system_instruction"] = system_prompt
 
         config = types.GenerateContentConfig(**config_params)
 

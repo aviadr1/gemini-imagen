@@ -133,3 +133,176 @@ class TestRealLangSmithLogging:
             "   The run should have 'output_image_0_s3_uri' and 'output_image_0_http_url' in outputs"
         )
         print("   URL: https://smith.langchain.com/o/YOURORG/projects/p/gemini-imagen")
+
+
+@requires_google_api_key()
+@requires_aws_credentials()
+class TestAdvancedFeatures:
+    """Comprehensive tests for advanced features with real API."""
+
+    def test_labeled_inputs_and_outputs(self):
+        """Test labeled input images and labeled output images with S3."""
+        from datetime import datetime
+        from pathlib import Path
+
+        from PIL import Image
+
+        from gemini_imagen import GeminiImageGenerator
+
+        aws_bucket = os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
+        if not aws_bucket:
+            pytest.skip("GV_AWS_STORAGE_BUCKET_NAME not set")
+
+        # Create test input images
+        test_dir = Path("test_inputs")
+        test_dir.mkdir(exist_ok=True)
+
+        img1_path = test_dir / "red_square.png"
+        img2_path = test_dir / "blue_circle.png"
+
+        # Create simple test images
+        Image.new("RGB", (100, 100), color="red").save(img1_path)
+        Image.new("RGB", (100, 100), color="blue").save(img2_path)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        s3_path1 = f"s3://{aws_bucket}/test_e2e/advanced/output1_{timestamp}.png"
+        s3_path2 = f"s3://{aws_bucket}/test_e2e/advanced/output2_{timestamp}.png"
+
+        generator = GeminiImageGenerator(log_images=True)
+        result = generator.generate(
+            prompt="Create two variations: one combining the red color with circular shape, another with blue and square shape",
+            system_prompt="You are an expert image generator. Create variations based on the provided images.",
+            input_images=[
+                ("Reference Color (Red):", str(img1_path)),
+                ("Reference Shape (Circle):", str(img2_path)),
+            ],
+            output_images=[
+                ("Red Circle Variation", s3_path1),
+                ("Blue Square Variation", s3_path2),
+            ],
+            run_name="test_labeled_inputs_and_outputs",
+            tags=["pytest", "e2e", "labeled-io", "advanced"],
+        )
+
+        # Verify outputs
+        assert len(result.images) >= 1
+        assert len(result.image_labels) >= 1
+        assert len(result.image_s3_uris) >= 1
+        assert len(result.image_http_urls) >= 1
+
+        # Check that at least one image was saved to S3
+        assert result.image_s3_uris[0] is not None
+        assert result.image_http_urls[0] is not None
+        assert "https://" in result.image_http_urls[0]
+
+        print("\n✅ Labeled inputs and outputs test passed")
+        print(f"   Generated {len(result.images)} image(s)")
+        print(f"   Labels: {result.image_labels}")
+        print(f"   S3 URIs: {result.image_s3_uris}")
+
+        # Cleanup
+        img1_path.unlink()
+        img2_path.unlink()
+        test_dir.rmdir()
+
+    def test_multiple_outputs_with_text(self):
+        """Test generating multiple images with text output."""
+        from datetime import datetime
+
+        from gemini_imagen import GeminiImageGenerator
+
+        aws_bucket = os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
+        if not aws_bucket:
+            pytest.skip("GV_AWS_STORAGE_BUCKET_NAME not set")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        s3_paths = [
+            f"s3://{aws_bucket}/test_e2e/multi/sunrise_{timestamp}.png",
+            f"s3://{aws_bucket}/test_e2e/multi/sunset_{timestamp}.png",
+        ]
+
+        generator = GeminiImageGenerator(log_images=True)
+        result = generator.generate(
+            prompt="Generate two landscape images: one at sunrise and one at sunset. Also explain the differences in lighting and colors between them.",
+            system_prompt="Create beautiful landscape images and provide technical analysis.",
+            output_images=[
+                ("Sunrise Landscape", s3_paths[0]),
+                ("Sunset Landscape", s3_paths[1]),
+            ],
+            output_text=True,
+            temperature=0.7,
+            run_name="test_multiple_outputs_with_text",
+            tags=["pytest", "e2e", "multi-output", "text-output"],
+            metadata={"test_type": "comprehensive", "feature": "multi-output+text"},
+        )
+
+        # Verify images
+        assert len(result.images) >= 1
+        assert len(result.image_s3_uris) >= 1
+        assert result.image_s3_uris[0] is not None
+
+        # Verify text output
+        assert result.text is not None
+        assert len(result.text) > 10  # Should have meaningful text
+
+        print("\n✅ Multiple outputs with text test passed")
+        print(f"   Generated {len(result.images)} image(s)")
+        print(f"   Text output length: {len(result.text)} characters")
+        print(f"   S3 URIs: {result.image_s3_uris}")
+        print(f"   Text preview: {result.text[:100]}...")
+
+    def test_image_analysis_with_system_prompt(self):
+        """Test image analysis with system prompt and text-only output."""
+        from pathlib import Path
+
+        from PIL import Image
+
+        from gemini_imagen import GeminiImageGenerator
+
+        # Create a test image to analyze
+        test_dir = Path("test_analysis")
+        test_dir.mkdir(exist_ok=True)
+        test_image_path = test_dir / "analyze_me.png"
+
+        # Create an image with specific characteristics
+        img = Image.new("RGB", (200, 200))
+        pixels = img.load()
+        # Create a red-blue gradient
+        for x in range(200):
+            for y in range(200):
+                r = int(255 * (x / 200))
+                b = int(255 * (y / 200))
+                pixels[x, y] = (r, 0, b)
+        img.save(test_image_path)
+
+        generator = GeminiImageGenerator(log_images=True)
+        result = generator.generate(
+            prompt="Describe this image in detail, focusing on the color gradient pattern and dimensions.",
+            system_prompt="You are a professional image analyst. Provide technical, precise descriptions of images.",
+            input_images=[("Gradient Image:", str(test_image_path))],
+            output_text=True,
+            temperature=0.3,  # Lower temperature for more consistent analysis
+            run_name="test_image_analysis_with_system_prompt",
+            tags=["pytest", "e2e", "analysis", "system-prompt"],
+            metadata={"analysis_type": "gradient", "input_type": "synthetic"},
+        )
+
+        # Verify text-only output
+        assert result.text is not None
+        assert len(result.text) > 20
+        assert len(result.images) == 0  # No images generated
+        assert len(result.image_s3_uris) == 0
+
+        # Check that the analysis mentions relevant terms
+        text_lower = result.text.lower()
+        assert any(
+            word in text_lower for word in ["color", "gradient", "red", "blue", "purple"]
+        ), "Analysis should mention colors"
+
+        print("\n✅ Image analysis with system prompt test passed")
+        print(f"   Analysis length: {len(result.text)} characters")
+        print(f"   Analysis preview: {result.text[:150]}...")
+
+        # Cleanup
+        test_image_path.unlink()
+        test_dir.rmdir()
