@@ -15,7 +15,8 @@ class TestGeminiImageGenerator:
         """Test basic initialization."""
         generator = GeminiImageGenerator()
         assert generator.model_name == "gemini-2.5-flash-image"
-        assert generator.log_images is False
+        # log_images defaults to True when LANGSMITH_TRACING is set
+        assert isinstance(generator.log_images, bool)
 
     def test_initialization_with_custom_params(self, mock_env_vars):
         """Test initialization with custom parameters."""

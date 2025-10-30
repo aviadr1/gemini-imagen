@@ -45,51 +45,49 @@ class TestS3UriParsing:
 class TestS3Operations:
     """Test S3 upload/download operations."""
 
-    @patch("gemini_imagen.s3_utils.boto3.client")
-    def test_upload_to_s3(self, mock_boto_client, tmp_path, sample_image):
+    @patch("gemini_imagen.s3_utils.get_s3_client")
+    @patch("gemini_imagen.s3_utils.get_http_url")
+    def test_upload_to_s3(self, mock_get_url, mock_get_client, tmp_path, sample_image):
         """Test uploading file to S3."""
         # Create a test file
         test_file = tmp_path / "test.png"
         sample_image.save(test_file)
 
         mock_s3 = MagicMock()
-        mock_boto_client.return_value = mock_s3
+        mock_get_client.return_value = mock_s3
+        mock_get_url.return_value = "https://test-bucket.s3.us-east-1.amazonaws.com/path/test.png"
 
-        # Test upload
-        upload_to_s3(str(test_file), "test-bucket", "path/test.png")
+        # Test upload - API is upload_to_s3(local_path, s3_key, bucket, region)
+        s3_uri, http_url = upload_to_s3(str(test_file), "path/test.png", "test-bucket")
 
         # Verify S3 client was called correctly
-        mock_s3.upload_file.assert_called_once()
-        assert mock_s3.upload_file.call_args[0][0] == str(test_file)
-        assert mock_s3.upload_file.call_args[0][1] == "test-bucket"
-        assert mock_s3.upload_file.call_args[0][2] == "path/test.png"
+        mock_s3.put_object.assert_called_once()
+        assert s3_uri == "s3://test-bucket/path/test.png"
+        assert http_url == "https://test-bucket.s3.us-east-1.amazonaws.com/path/test.png"
 
-    @patch("gemini_imagen.s3_utils.boto3.client")
-    def test_download_from_s3(self, mock_boto_client, tmp_path):
+    @patch("gemini_imagen.s3_utils.get_s3_client")
+    @patch("gemini_imagen.s3_utils.parse_s3_uri")
+    @patch("PIL.Image.open")
+    def test_download_from_s3(self, mock_image_open, mock_parse, mock_get_client, tmp_path, sample_image):
         """Test downloading file from S3."""
         mock_s3 = MagicMock()
-        mock_boto_client.return_value = mock_s3
+        mock_get_client.return_value = mock_s3
+        mock_parse.return_value = ("test-bucket", "path/file.png")
+        mock_image_open.return_value = sample_image
 
-        dest_file = tmp_path / "downloaded.png"
+        # Mock S3 download response
+        mock_s3.download_fileobj.return_value = None
 
-        # Test download
-        download_from_s3("test-bucket", "path/file.png", str(dest_file))
+        # Test download - API is download_from_s3(s3_uri, local_path=None)
+        result = download_from_s3("s3://test-bucket/path/file.png")
 
-        # Verify S3 client was called correctly
-        mock_s3.download_file.assert_called_once_with(
-            "test-bucket",
-            "path/file.png",
-            str(dest_file)
-        )
+        # Verify it returns a PIL Image
+        assert isinstance(result, Image.Image)
 
-    @patch("gemini_imagen.s3_utils.boto3.client")
-    def test_get_http_url(self, mock_boto_client):
-        """Test generating HTTP URL from S3 URI."""
-        mock_s3 = MagicMock()
-        mock_s3.meta.region_name = "us-east-1"
-        mock_boto_client.return_value = mock_s3
-
-        url = get_http_url("s3://my-bucket/path/to/file.png")
+    def test_get_http_url(self):
+        """Test generating HTTP URL from bucket and key."""
+        # API is get_http_url(bucket, key, region="us-east-1")
+        url = get_http_url("my-bucket", "path/to/file.png", "us-east-1")
 
         assert url == "https://my-bucket.s3.us-east-1.amazonaws.com/path/to/file.png"
 
@@ -99,51 +97,49 @@ class TestImageOperations:
 
     def test_load_local_image(self, sample_image_path):
         """Test loading image from local path."""
-        img, img_type = load_image(str(sample_image_path))
+        # API returns just Image.Image
+        img = load_image(str(sample_image_path))
         assert isinstance(img, Image.Image)
-        assert img_type == "local"
 
     def test_load_pil_image(self, sample_image):
         """Test loading PIL Image object."""
-        img, img_type = load_image(sample_image)
+        # API returns just Image.Image
+        img = load_image(sample_image)
         assert img == sample_image
-        assert img_type == "pil"
 
     @patch("gemini_imagen.s3_utils.download_from_s3")
     def test_load_s3_image(self, mock_download, tmp_path, sample_image):
         """Test loading image from S3."""
-        # Create a temporary image that will be "downloaded"
-        temp_img = tmp_path / "temp.png"
-        sample_image.save(temp_img)
+        # Mock download_from_s3 to return a PIL Image
+        mock_download.return_value = sample_image
 
-        def mock_download_side_effect(bucket, key, local_path):
-            sample_image.save(local_path)
-
-        mock_download.side_effect = mock_download_side_effect
-
-        img, img_type = load_image("s3://test-bucket/image.png")
+        img = load_image("s3://test-bucket/image.png")
 
         assert isinstance(img, Image.Image)
-        assert img_type == "s3"
-        mock_download.assert_called_once()
+        mock_download.assert_called_once_with("s3://test-bucket/image.png")
 
     def test_save_local_image(self, sample_image, tmp_path):
         """Test saving image to local path."""
         output_path = tmp_path / "output.png"
-        location, s3_uri = save_image(sample_image, str(output_path))
+        # API returns (location, s3_uri, http_url)
+        location, s3_uri, http_url = save_image(sample_image, str(output_path))
 
         assert location == str(output_path)
         assert s3_uri is None
+        assert http_url is None
         assert output_path.exists()
 
     @patch("gemini_imagen.s3_utils.upload_to_s3")
-    @patch("gemini_imagen.s3_utils.get_http_url")
-    def test_save_s3_image(self, mock_get_url, mock_upload, sample_image, tmp_path):
+    def test_save_s3_image(self, mock_upload, sample_image, tmp_path):
         """Test saving image to S3."""
-        mock_get_url.return_value = "https://bucket.s3.region.amazonaws.com/test.png"
+        # Mock upload_to_s3 to return (s3_uri, http_url)
+        mock_upload.return_value = (
+            "s3://test-bucket/test.png",
+            "https://test-bucket.s3.us-east-1.amazonaws.com/test.png"
+        )
 
-        location, s3_uri = save_image(sample_image, "s3://test-bucket/test.png")
+        location, s3_uri, http_url = save_image(sample_image, "s3://test-bucket/test.png")
 
-        assert location.startswith("/tmp")  # Temp file
         assert s3_uri == "s3://test-bucket/test.png"
+        assert http_url == "https://test-bucket.s3.us-east-1.amazonaws.com/test.png"
         mock_upload.assert_called_once()
