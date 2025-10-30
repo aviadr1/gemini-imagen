@@ -1,6 +1,7 @@
 #!/bin/bash
 # Release script: Build and publish to PyPI
-# Usage: ./scripts/release.sh [--test]
+# Usage: ./scripts/release.sh [patch|minor|major] [--test]
+#   Default bump type is 'patch' if not specified
 
 set -e  # Exit on error
 
@@ -17,39 +18,56 @@ if [ ! -f "pyproject.toml" ]; then
 fi
 
 # Parse arguments
+BUMP_TYPE="patch"
 USE_TEST_PYPI=false
-if [ "$1" == "--test" ]; then
-    USE_TEST_PYPI=true
+
+for arg in "$@"; do
+    case $arg in
+        patch|minor|major)
+            BUMP_TYPE="$arg"
+            ;;
+        --test)
+            USE_TEST_PYPI=true
+            ;;
+        *)
+            echo -e "${RED}Error: Invalid argument '$arg'${NC}"
+            echo "Usage: ./scripts/release.sh [patch|minor|major] [--test]"
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$USE_TEST_PYPI" = true ]; then
     echo -e "${YELLOW}Using TestPyPI${NC}"
 fi
 
 # Get current version
+OLD_VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
+echo -e "${GREEN}Current version: ${OLD_VERSION}${NC}"
+
+# Bump version
+echo -e "${GREEN}Bumping ${BUMP_TYPE} version...${NC}"
+uv run python scripts/bump_version.py "$BUMP_TYPE"
+
+# Get new version
 VERSION=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
-echo -e "${GREEN}Building version: ${VERSION}${NC}"
+echo -e "${GREEN}New version: ${VERSION}${NC}"
 
-# Check git status
-if ! git diff-index --quiet HEAD --; then
-    echo -e "${YELLOW}Warning: You have uncommitted changes${NC}"
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
+# Commit version bump
+echo -e "${GREEN}Committing version bump...${NC}"
+git add pyproject.toml
+git commit -m "Bump version to ${VERSION}
 
-# Check if tag exists
-if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
-    echo -e "${GREEN}Tag v${VERSION} exists${NC}"
-else
-    echo -e "${YELLOW}Warning: Tag v${VERSION} does not exist${NC}"
-    read -p "Create tag now? (Y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        git tag "v${VERSION}"
-        echo -e "${GREEN}Created tag v${VERSION}${NC}"
-        echo -e "${YELLOW}Don't forget to push tags: git push --tags${NC}"
-    fi
-fi
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# Create and push tag
+echo -e "${GREEN}Creating tag v${VERSION}...${NC}"
+git tag "v${VERSION}"
+
+echo -e "${GREEN}Pushing commit and tag...${NC}"
+git push && git push --tags
 
 # Ensure dependencies are installed
 echo -e "${GREEN}Installing dependencies...${NC}"

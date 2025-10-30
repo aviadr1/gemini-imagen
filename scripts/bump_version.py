@@ -66,6 +66,12 @@ def main() -> None:
         print(__doc__)
         sys.exit(0)
 
+    # Validate bump type early
+    if bump_type not in ["patch", "minor", "major"] and not re.match(r"^\d+\.\d+\.\d+$", bump_type):
+        print(f"Error: Invalid version or bump type: {bump_type}")
+        print(__doc__)
+        sys.exit(1)
+
     # Find pyproject.toml
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
@@ -90,12 +96,8 @@ def main() -> None:
     # Update version
     update_version(pyproject_path, new_version)
     print(f"Updated version: {new_version}")
-    print(f"\nNext steps:")
-    print(f"  1. Review changes: git diff pyproject.toml")
-    print(f'  2. Commit: git add pyproject.toml && git commit -m "Bump version to {new_version}"')
-    print(f"  3. Tag: git tag v{new_version}")
-    print(f"  4. Push: git push && git push --tags")
-    print(f"  5. Release: ./scripts/release.sh")
+    print(f"\nNote: Version updated in pyproject.toml")
+    print(f"This is typically called by release.sh, not directly.")
 
 
 if __name__ == "__main__":

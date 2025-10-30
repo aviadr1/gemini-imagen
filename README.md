@@ -451,44 +451,39 @@ make pre-commit
 
 #### Quick Release Process
 
-**Step 1: Bump version**
+**One command to release:**
 ```bash
-# Bump patch version (0.1.0 -> 0.1.1)
-uv run python scripts/bump_version.py patch
-
-# Bump minor version (0.1.0 -> 0.2.0)
-uv run python scripts/bump_version.py minor
-
-# Bump major version (0.1.0 -> 1.0.0)
-uv run python scripts/bump_version.py major
-
-# Or set specific version
-uv run python scripts/bump_version.py 1.2.3
-```
-
-**Step 2: Commit and tag**
-```bash
-git add pyproject.toml
-git commit -m "Bump version to X.Y.Z"
-git tag vX.Y.Z
-git push && git push --tags
-```
-
-**Step 3: Build and publish**
-```bash
-# Test release (uploads to TestPyPI)
-./scripts/release.sh --test
-
-# Production release (uploads to PyPI)
+# Patch release (0.1.0 -> 0.1.1) - default
 ./scripts/release.sh
+
+# Minor release (0.1.0 -> 0.2.0)
+./scripts/release.sh minor
+
+# Major release (0.1.0 -> 1.0.0)
+./scripts/release.sh major
+
+# Test on TestPyPI first
+./scripts/release.sh patch --test
 ```
 
-The release script will:
-- Run linters (ruff + mypy)
-- Run tests
-- Build the package
-- Verify with twine
-- Upload to PyPI (with confirmation)
+The release script automatically:
+1. Bumps the version (patch/minor/major)
+2. Commits the version change
+3. Creates and pushes a git tag
+4. Installs dependencies
+5. Runs linters (ruff + mypy)
+6. Runs tests
+7. Builds the package
+8. Verifies with twine
+9. Uploads to PyPI (with confirmation)
+
+**Manual version bump (if needed):**
+```bash
+# Bump version manually
+uv run python scripts/bump_version.py patch  # 0.1.0 -> 0.1.1
+uv run python scripts/bump_version.py minor  # 0.1.0 -> 0.2.0
+uv run python scripts/bump_version.py major  # 0.1.0 -> 1.0.0
+```
 
 #### Manual Build/Publish
 
