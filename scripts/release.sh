@@ -51,6 +51,10 @@ else
     fi
 fi
 
+# Ensure dependencies are installed
+echo -e "${GREEN}Installing dependencies...${NC}"
+uv sync --extra dev --extra s3
+
 # Clean previous builds
 echo -e "${GREEN}Cleaning previous builds...${NC}"
 rm -rf dist/ build/ *.egg-info
