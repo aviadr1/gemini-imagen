@@ -116,11 +116,13 @@ class ImageInfo(BaseModel):
 class GenerationResult(BaseModel):
     """Result from image generation with support for multiple images and structured output."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, exclude_none=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Text or structured output (mutually exclusive)
     text: str | None = Field(None, description="Generated text response")
-    structured: Any | None = Field(None, description="Structured output as Pydantic instance", exclude=True)
+    structured: Any | None = Field(
+        None, description="Structured output as Pydantic instance", exclude=True
+    )
 
     # Multiple images support
     images: list[Image.Image] = Field(

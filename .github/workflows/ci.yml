@@ -29,7 +29,7 @@ jobs:
       - name: Run ruff (linter)
         run: |
           source .venv/bin/activate
-          ruff check --fix src/ examples/
+          ruff check --fix --unsafe-fixes src/ examples/
 
       - name: Run ruff (formatter)
         run: |
