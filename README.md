@@ -1,0 +1,376 @@
+# gemini-imagen
+
+[![PyPI version](https://badge.fury.io/py/gemini-imagen.svg)](https://badge.fury.io/py/gemini-imagen)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities, featuring:
+
+- 🎨 **Text-to-Image Generation** - Create images from text prompts
+- 🏷️ **Labeled Input Images** - Reference images by name in prompts for better control
+- 📸 **Multiple Output Images** - Generate multiple variations in one request
+- 💬 **Image Analysis** - Get detailed text descriptions of images
+- ☁️ **S3 Integration** - Seamless AWS S3 upload/download with URL logging
+- 📈 **LangSmith Tracing** - Full observability for debugging and monitoring
+- 🔄 **Type-Safe** - Full type hints with Pydantic validation
+
+## Installation
+
+### Basic Installation
+
+```bash
+pip install gemini-imagen
+```
+
+### With S3 Support
+
+```bash
+pip install gemini-imagen[s3]
+```
+
+### From Source
+
+```bash
+git clone https://github.com/aviadr1/gemini-imagen.git
+cd gemini-imagen
+pip install -e .
+```
+
+## Quick Start
+
+### 1. Set Up API Key
+
+```bash
+export GOOGLE_API_KEY="your-api-key-here"
+```
+
+Or create a `.env` file:
+```env
+GOOGLE_API_KEY=your-api-key-here
+```
+
+### 2. Generate Your First Image
+
+```python
+from gemini_imagen import GeminiImageGenerator
+
+generator = GeminiImageGenerator()
+
+result = generator.generate(
+    prompt="A serene Japanese garden with cherry blossoms",
+    output_images=["garden.png"]
+)
+
+print(f"Image saved to: {result.image_location}")
+```
+
+## Features
+
+### Text-to-Image Generation
+
+Generate images from text descriptions:
+
+```python
+result = generator.generate(
+    prompt="A futuristic cityscape at sunset with flying cars",
+    output_images=["cityscape.png"]
+)
+```
+
+### Image Analysis
+
+Analyze existing images and get text descriptions:
+
+```python
+result = generator.generate(
+    prompt="Describe this image in detail, including colors, objects, and mood",
+    input_images=["photo.jpg"],
+    output_text=True
+)
+
+print(result.text)
+```
+
+### Labeled Input Images
+
+Reference multiple images by name in your prompts:
+
+```python
+result = generator.generate(
+    prompt="Blend the artistic style from Photo A with the composition from Photo B",
+    input_images=[
+        ("Photo A (style):", "style_reference.jpg"),
+        ("Photo B (composition):", "composition_reference.jpg")
+    ],
+    output_images=["blended_result.png"]
+)
+```
+
+### Multiple Output Images
+
+Request multiple variations:
+
+```python
+result = generator.generate(
+    prompt="Create 3 variations of a mountain landscape",
+    output_images=[
+        ("Sunrise version", "mountain_sunrise.png"),
+        ("Sunset version", "mountain_sunset.png"),
+        ("Night version", "mountain_night.png")
+    ]
+)
+
+# Note: Gemini may return fewer images than requested
+for label, uri in zip(result.image_labels, result.image_locations):
+    print(f"{label}: {uri}")
+```
+
+### S3 Integration
+
+Upload/download images directly to/from AWS S3:
+
+```python
+# Configure AWS credentials in .env:
+# GV_AWS_ACCESS_KEY_ID=your_key
+# GV_AWS_SECRET_ACCESS_KEY=your_secret
+# GV_AWS_STORAGE_BUCKET_NAME=your_bucket
+
+result = generator.generate(
+    prompt="A magical forest scene",
+    input_images=["s3://my-bucket/reference.jpg"],
+    output_images=["s3://my-bucket/output.png"]
+)
+
+# Access S3 URLs
+print(result.image_s3_uri)    # s3://my-bucket/output.png
+print(result.image_http_url)  # https://my-bucket.s3.region.amazonaws.com/...
+```
+
+### LangSmith Tracing
+
+Enable observability with LangSmith:
+
+```python
+import os
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = "your-key"
+
+generator = GeminiImageGenerator(log_images=True)
+
+result = generator.generate(
+    prompt="A robot reading in a cozy library",
+    output_images=["robot_library.png"],
+    metadata={"user_id": "demo", "session": "example"},
+    tags=["demo", "robot"]
+)
+
+# View traces at https://smith.langchain.com/
+```
+
+### Image + Text Output
+
+Get both an image and explanation:
+
+```python
+result = generator.generate(
+    prompt="Generate a futuristic city and explain its key architectural features",
+    output_images=["city.png"],
+    output_text=True
+)
+
+print(f"Image: {result.image_location}")
+print(f"Explanation: {result.text}")
+```
+
+## Architecture
+
+The package uses `gemini-2.5-flash-image` for all operations:
+
+```mermaid
+graph TB
+    A[User Request] --> B[Load Input Images<br/>with Labels]
+    B --> C[Build Content<br/>Prompt + Images]
+    C --> D[gemini-2.5-flash-image<br/>Generate Content]
+    D --> E{Extract Response}
+    E -->|Has Images| F[PIL Images]
+    E -->|Has Text| G[Plain Text]
+    F --> H{Save to S3/Local?}
+    G --> I[Return Result]
+    H -->|Yes| J[Upload & Get URLs]
+    H -->|No| I
+    J --> I
+    I --> K{LangSmith<br/>Enabled?}
+    K -->|Yes| L[Log to LangSmith<br/>- Images as S3 URLs<br/>- Text response]
+    K -->|No| M[GenerationResult]
+    L --> M
+```
+
+## API Reference
+
+### GeminiImageGenerator
+
+```python
+generator = GeminiImageGenerator(
+    model_name="gemini-2.5-flash-image",  # Image generation model
+    api_key=None,                          # Auto-loads from env
+    log_images=True                        # Enable LangSmith logging
+)
+```
+
+### generate() Method
+
+```python
+result = generator.generate(
+    prompt: str,                                      # Main prompt (required)
+    system_prompt: Optional[str] = None,              # System instructions
+    input_images: Optional[List[ImageSource]] = None, # Input images
+    temperature: Optional[float] = None,              # Sampling temperature
+
+    # Output configuration
+    output_images: Optional[List[OutputImageSpec]] = None,  # Generate images
+    output_text: bool = False,                              # Generate text
+
+    # LangSmith
+    metadata: Optional[Dict[str, str]] = None,
+    tags: Optional[List[str]] = None
+) -> GenerationResult
+```
+
+**Type Definitions:**
+
+- `ImageSource = RawImageSource | LabeledImage`
+  - `RawImageSource = Image.Image | str | Path`
+  - `LabeledImage = Tuple[str, RawImageSource]`
+
+- `OutputImageSpec = OutputLocation | LabeledOutput`
+  - `OutputLocation = str | Path`
+  - `LabeledOutput = Tuple[str, OutputLocation]`
+
+### GenerationResult
+
+```python
+class GenerationResult:
+    text: Optional[str]                      # Generated text
+    images: List[Image.Image]                # PIL Image objects
+    image_labels: List[Optional[str]]        # Image labels
+    image_locations: List[str]               # Local file paths
+    image_s3_uris: List[Optional[str]]       # S3 URIs
+    image_http_urls: List[Optional[str]]     # HTTP URLs
+
+    # Convenience properties (first image)
+    @property
+    def image(self) -> Optional[Image.Image]
+    @property
+    def image_location(self) -> Optional[str]
+    @property
+    def image_s3_uri(self) -> Optional[str]
+    @property
+    def image_http_url(self) -> Optional[str]
+```
+
+## Structured Output
+
+⚠️ **The image model (`gemini-2.5-flash-image`) does not support JSON schemas or structured output.**
+
+For structured output, use a two-step approach:
+
+```python
+# Step 1: Generate or analyze image
+from gemini_imagen import GeminiImageGenerator
+
+generator = GeminiImageGenerator()
+result = generator.generate(
+    prompt="Analyze this image in detail",
+    input_images=["image.png"],
+    output_text=True
+)
+
+# Step 2: Get structured output with gemini-2.5-flash
+from google import generativeai as genai
+from pydantic import BaseModel
+
+class ImageAnalysis(BaseModel):
+    objects: list[str]
+    colors: list[str]
+    mood: str
+
+text_model = genai.GenerativeModel("gemini-2.5-flash")
+response = text_model.generate_content(
+    f"{result.text}\\n\\nFormat as JSON with fields: objects, colors, mood",
+    generation_config={
+        "response_mime_type": "application/json",
+        "response_schema": ImageAnalysis.model_json_schema()
+    }
+)
+
+analysis = ImageAnalysis.model_validate_json(response.text)
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Required
+GOOGLE_API_KEY=your_google_api_key
+
+# Optional - for S3 features
+GV_AWS_ACCESS_KEY_ID=your_aws_access_key
+GV_AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+GV_AWS_STORAGE_BUCKET_NAME=your-bucket-name
+
+# Optional - for LangSmith tracing
+LANGSMITH_API_KEY=your_langsmith_api_key
+LANGSMITH_TRACING=true
+```
+
+## Examples
+
+See the [`examples/`](examples/) directory for complete working examples:
+
+- [`basic_generation.py`](examples/basic_generation.py) - Simple text-to-image
+- [`image_analysis.py`](examples/image_analysis.py) - Analyze images
+- [`labeled_inputs.py`](examples/labeled_inputs.py) - Use labeled images
+- [`s3_integration.py`](examples/s3_integration.py) - S3 upload/download
+- [`langsmith_tracing.py`](examples/langsmith_tracing.py) - Enable tracing
+
+## Pricing
+
+### Image Generation (gemini-2.5-flash-image)
+- **Cost**: $30/1M output tokens
+- **Per Image**: ~$0.039 (1290 tokens at 1024x1024)
+
+### Text Model (gemini-2.5-flash)
+- **Input**: $0.30/1M tokens
+- **Output**: $1.20/1M tokens
+
+## Limitations
+
+- **Multiple images**: Gemini may not always generate the exact number requested
+- **Structured output**: Only available with text model (separate call required)
+- **Rate limits** (free tier): 10 requests/minute, 1500/day
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+- Built on [`google-generativeai`](https://github.com/google/generative-ai-python) Python SDK
+- Uses [`langsmith`](https://github.com/langchain-ai/langsmith-sdk) for tracing
+- S3 integration via [`boto3`](https://github.com/boto/boto3)
+- Type validation with [`pydantic`](https://github.com/pydantic/pydantic) v2
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/aviadr1/gemini-imagen/issues)
+- **Documentation**: [README](https://github.com/aviadr1/gemini-imagen#readme)
+- **Examples**: [examples/](examples/)
+
+---
+
+Made with ❤️ by [Aviad Rozenhek](https://github.com/aviadr1)

@@ -1,0 +1,105 @@
+[project]
+name = "gemini-imagen"
+version = "0.1.0"
+description = "A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities with S3 and LangSmith integration"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Aviad Rozenhek", email = "aviadr1@gmail.com"}
+]
+maintainers = [
+    {name = "Aviad Rozenhek", email = "aviadr1@gmail.com"}
+]
+keywords = [
+    "gemini",
+    "image-generation",
+    "ai",
+    "google",
+    "imagen",
+    "langsmith",
+    "s3",
+    "computer-vision"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "google-generativeai>=0.8.0",
+    "pillow>=10.0.0",
+    "pydantic>=2.0.0",
+    "langsmith>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "boto3>=1.34.0; extra == 's3'",
+]
+
+[project.optional-dependencies]
+s3 = [
+    "boto3>=1.34.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/aviadr1/gemini-imagen"
+Documentation = "https://github.com/aviadr1/gemini-imagen#readme"
+Repository = "https://github.com/aviadr1/gemini-imagen"
+Issues = "https://github.com/aviadr1/gemini-imagen/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gemini_imagen"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/examples",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=gemini_imagen",
+    "--cov-report=term-missing",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
