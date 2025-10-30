@@ -81,10 +81,10 @@ class TestRealS3Integration:
         assert result.image_http_url is not None
         assert "https://" in result.image_http_url
 
-        print(f"\n✅ S3 image generated and logged to LangSmith")
+        print("\n✅ S3 image generated and logged to LangSmith")
         print(f"   S3 URI: {result.image_s3_uri}")
         print(f"   HTTP URL: {result.image_http_url}")
-        print(f"   Check LangSmith project 'gemini-imagen' for run 'test_s3_image_generation'")
+        print("   Check LangSmith project 'gemini-imagen' for run 'test_s3_image_generation'")
 
 
 @requires_google_api_key()

@@ -7,7 +7,9 @@ S3 URLs are actually logged to LangSmith.
 
 import os
 from datetime import datetime
+
 from dotenv import load_dotenv
+
 from gemini_imagen import GeminiImageGenerator
 
 load_dotenv()
@@ -26,7 +28,7 @@ print("=" * 70)
 # Create generator with logging enabled
 generator = GeminiImageGenerator(log_images=True)
 
-print(f"\nGenerator config:")
+print("\nGenerator config:")
 print(f"  log_images: {generator.log_images}")
 print(f"  LANGSMITH_TRACING: {os.getenv('LANGSMITH_TRACING')}")
 
@@ -42,10 +44,10 @@ result = generator.generate(
     prompt="A simple red circle on white background",
     output_images=[("Test Output", s3_output_path)],
     run_name="langsmith_real_test_image_generation",
-    tags=["langsmith-test", "s3-logging"]
+    tags=["langsmith-test", "s3-logging"],
 )
 
-print(f"\n✓ Image generated!")
+print("\n✓ Image generated!")
 print(f"  S3 URI: {result.image_s3_uri}")
 print(f"  HTTP URL: {result.image_http_url}")
 
@@ -61,10 +63,10 @@ result2 = generator.generate(
     input_images=[("Previous image:", result.image_s3_uri)],
     output_text=True,
     run_name="langsmith_real_test_image_analysis",
-    tags=["langsmith-test", "s3-input"]
+    tags=["langsmith-test", "s3-input"],
 )
 
-print(f"\n✓ Analysis complete!")
+print("\n✓ Analysis complete!")
 print(f"  Response: {result2.text}")
 
 print("\n" + "=" * 70)
@@ -79,6 +81,6 @@ print("  2. Run 'langsmith_real_test_image_analysis' with tags: langsmith-test, 
 print("     - Should have input_image_0_s3_uri in inputs")
 print("     - Should have input_image_0_http_url in inputs")
 print()
-print(f"🔗 LangSmith URL: https://smith.langchain.com/o/YOURORG/projects/p/gemini-imagen")
+print("🔗 LangSmith URL: https://smith.langchain.com/o/YOURORG/projects/p/gemini-imagen")
 print()
 print("If you don't see S3 URLs in the traces, the logging is NOT working.")
