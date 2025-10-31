@@ -78,6 +78,59 @@ class ResponseModality(str, Enum):
     TEXT = "TEXT"
 
 
+# Constants for image generation
+PRESET_ASPECT_RATIOS = {
+    "1:1",  # Square (default, 1024x1024)
+    "3:4",  # Portrait fullscreen
+    "4:3",  # Fullscreen/landscape
+    "9:16",  # Portrait/tall (social media)
+    "16:9",  # Widescreen
+}
+
+VALID_IMAGE_SIZES = {"1K", "2K"}  # 2K only supported on Standard/Ultra models
+
+
+def _normalize_aspect_ratio(aspect_ratio: str | tuple[int, int] | None) -> str | None:
+    """
+    Normalize aspect ratio to string format.
+
+    Args:
+        aspect_ratio: Either a preset string ("16:9"), custom tuple (16, 9), or None
+
+    Returns:
+        Normalized aspect ratio string or None
+
+    Raises:
+        ValueError: If aspect ratio format is invalid
+    """
+    if aspect_ratio is None:
+        return None
+
+    if isinstance(aspect_ratio, str):
+        # Validate format
+        if ":" not in aspect_ratio:
+            raise ValueError(
+                f"Invalid aspect ratio string: {aspect_ratio}. Must be in format 'W:H' (e.g., '16:9')"
+            )
+        return aspect_ratio
+
+    if isinstance(aspect_ratio, tuple):
+        if len(aspect_ratio) != 2:
+            raise ValueError(f"Invalid aspect ratio tuple: {aspect_ratio}. Must be (width, height)")
+        width, height = aspect_ratio
+        if not isinstance(width, int) or not isinstance(height, int):
+            raise ValueError(
+                f"Invalid aspect ratio values: {aspect_ratio}. Both width and height must be integers"
+            )
+        if width <= 0 or height <= 0:
+            raise ValueError(
+                f"Invalid aspect ratio values: {aspect_ratio}. Both width and height must be positive"
+            )
+        return f"{width}:{height}"
+
+    raise ValueError(f"Invalid aspect ratio type: {type(aspect_ratio)}. Must be string or tuple")
+
+
 class ImageType(str, Enum):
     """Image source types."""
 
@@ -238,6 +291,9 @@ class GeminiImageGenerator:
         system_prompt: str | None = None,
         input_images: list[ImageSource] | None = None,
         temperature: float | None = None,
+        # Image generation configuration
+        aspect_ratio: str | tuple[int, int] | None = None,
+        image_size: str | None = None,
         # Output configuration
         output_images: list[OutputImageSpec] | OutputImageSpec | None = None,
         output_text: bool = False,
@@ -251,6 +307,7 @@ class GeminiImageGenerator:
         - Labeled input images
         - Multiple output images
         - Flexible output combinations (image, text, or both)
+        - Custom aspect ratios and resolutions
 
         Args:
             prompt: User prompt text
@@ -260,9 +317,20 @@ class GeminiImageGenerator:
                 - Tuple of ("label", image) for labeled images
             temperature: Sampling temperature (0.0 to 1.0)
 
+            aspect_ratio: Image aspect ratio. Options:
+                - Preset string: "1:1", "3:4", "4:3", "9:16", "16:9"
+                - Custom tuple: (16, 10) for 16:10 ratio
+                - None: Uses default (1:1)
+            image_size: Image resolution. Options:
+                - "1K": Default (e.g., 1024x1024 for 1:1)
+                - "2K": Higher resolution (e.g., 2048x2048 for 1:1)
+                - Note: 2K only supported on Standard/Ultra models
+                - None: Uses default (1K)
+
             output_images: List of output image specifications, each can be:
                 - str or Path (location to save)
                 - Tuple of ("label", location) for labeled outputs
+                - Number of generated images matches list length
             output_text: If True, request text output
 
             metadata: Additional metadata to log in LangSmith
@@ -347,6 +415,22 @@ class GeminiImageGenerator:
             except Exception:
                 pass  # Silently ignore if LangSmith not available
 
+        # Validate and normalize aspect ratio
+        normalized_aspect_ratio = _normalize_aspect_ratio(aspect_ratio)
+
+        # Validate image size
+        if image_size is not None and image_size not in VALID_IMAGE_SIZES:
+            raise ValueError(
+                f"Invalid image_size: {image_size}. Must be one of {VALID_IMAGE_SIZES}"
+            )
+
+        # Determine number of images to generate based on output_images
+        if output_images is not None:
+            output_specs = self._parse_output_specs(output_images)
+            number_of_images = len(output_specs) if output_specs else 1
+        else:
+            number_of_images = 1
+
         # Determine response modalities
         modalities = self._determine_response_modalities(
             output_images=output_images, output_text=output_text
@@ -364,6 +448,9 @@ class GeminiImageGenerator:
             system_prompt=system_prompt,
             temperature=temperature,
             modalities=modalities,
+            aspect_ratio=normalized_aspect_ratio,
+            image_size=image_size,
+            number_of_images=number_of_images,
         )
 
         # Extract and process results
@@ -524,6 +611,9 @@ class GeminiImageGenerator:
         system_prompt: str | None,
         temperature: float | None,
         modalities: list[str],
+        aspect_ratio: str | None = None,
+        image_size: str | None = None,
+        number_of_images: int = 1,
     ) -> types.GenerateContentResponse:
         """Call Gemini API and return response."""
         import asyncio
@@ -539,6 +629,16 @@ class GeminiImageGenerator:
         # Add system instruction if specified
         if system_prompt is not None:
             config_params["system_instruction"] = system_prompt
+
+        # Add image generation parameters if specified
+        if aspect_ratio is not None:
+            config_params["aspect_ratio"] = aspect_ratio
+
+        if image_size is not None:
+            config_params["image_size"] = image_size
+
+        if number_of_images > 1:
+            config_params["number_of_images"] = number_of_images
 
         config = types.GenerateContentConfig(**config_params)
 
