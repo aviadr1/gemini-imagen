@@ -330,7 +330,8 @@ class GeminiImageGenerator:
             output_images: List of output image specifications, each can be:
                 - str or Path (location to save)
                 - Tuple of ("label", location) for labeled outputs
-                - Number of generated images matches list length
+                - NOTE: gemini-2.5-flash-image only generates 1 image per API call
+                - Multiple outputs will use the same generated image saved to different locations
             output_text: If True, request text output
 
             metadata: Additional metadata to log in LangSmith
@@ -635,14 +636,22 @@ class GeminiImageGenerator:
         if aspect_ratio is not None:
             config_params["image_config"] = types.ImageConfig(aspect_ratio=aspect_ratio)
 
-        # number_of_images goes directly in GenerateContentConfig
+        # Note: number_of_images and image_size are NOT supported on gemini-2.5-flash-image
+        # They are only available on Imagen models (imagen-3, imagen-4)
+        # For Gemini models, you can only generate 1 image at a time per API call
         if number_of_images > 1:
-            config_params["number_of_images"] = number_of_images
+            import warnings
 
-        # Note: image_size is not supported on gemini-2.5-flash-image model
-        # It's only available on Imagen models (imagen-3, imagen-4)
+            warnings.warn(
+                f"number_of_images parameter ({number_of_images}) is not supported on {self.model_name}. "
+                "It's only available on Imagen models. "
+                "The model will generate 1 image per API call. "
+                "To generate multiple images, make multiple API calls.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         if image_size is not None:
-            # Log warning but don't fail
             import warnings
 
             warnings.warn(
