@@ -93,10 +93,10 @@ async def main():
     print(f"  ✓ Created {len(images)} images")
 
     # Run sequential benchmark
-    seq_results, seq_time = await benchmark_sequential(images, output_dir, network_delay)
+    _seq_results, seq_time = await benchmark_sequential(images, output_dir, network_delay)
 
     # Run parallel benchmark
-    par_results, par_time = await benchmark_parallel(images, output_dir, network_delay)
+    _par_results, par_time = await benchmark_parallel(images, output_dir, network_delay)
 
     # Calculate and display results
     print("\n" + "=" * 70)
