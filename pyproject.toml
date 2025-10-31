@@ -1,6 +1,6 @@
 [project]
 name = "gemini-imagen"
-version = "0.2.5"
+version = "0.3.0"
 description = "A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities with S3 and LangSmith integration"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -38,11 +38,13 @@ dependencies = [
     "pydantic>=2.0.0",
     "langsmith>=0.1.0",
     "python-dotenv>=1.0.0",
+    "aiofiles>=24.0.0",
 ]
 
 [project.optional-dependencies]
 s3 = [
     "boto3>=1.34.0",
+    "aioboto3>=13.0.0",
 ]
 dev = [
     # Testing
@@ -59,6 +61,7 @@ dev = [
     # Type stubs
     "types-pillow>=10.0.0",
     "types-boto3>=1.34.0",
+    "types-aiofiles>=24.0.0",
 
     # Build and release
     "build>=1.0.0",
