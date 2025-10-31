@@ -321,11 +321,11 @@ class GeminiImageGenerator:
                 - Preset string: "1:1", "3:4", "4:3", "9:16", "16:9"
                 - Custom tuple: (16, 10) for 16:10 ratio
                 - None: Uses default (1:1)
-            image_size: Image resolution. Options:
-                - "1K": Default (e.g., 1024x1024 for 1:1)
-                - "2K": Higher resolution (e.g., 2048x2048 for 1:1)
-                - Note: 2K only supported on Standard/Ultra models
-                - None: Uses default (1K)
+            image_size: Image resolution (NOT SUPPORTED on gemini-2.5-flash-image)
+                - Only available on Imagen models (imagen-3, imagen-4)
+                - Options: "1K" (default), "2K" (higher resolution)
+                - This parameter will be ignored with a warning for Gemini models
+                - None: Uses model default
 
             output_images: List of output image specifications, each can be:
                 - str or Path (location to save)
@@ -630,22 +630,28 @@ class GeminiImageGenerator:
         if system_prompt is not None:
             config_params["system_instruction"] = system_prompt
 
-        # Add image generation parameters if specified
-        # These go in a separate ImageConfig object
-        image_config_params: dict[str, Any] = {}
-
+        # Add image generation parameters
+        # aspect_ratio goes in ImageConfig
         if aspect_ratio is not None:
-            image_config_params["aspect_ratio"] = aspect_ratio
+            config_params["image_config"] = types.ImageConfig(aspect_ratio=aspect_ratio)
 
-        if image_size is not None:
-            image_config_params["image_size"] = image_size
-
+        # number_of_images goes directly in GenerateContentConfig
         if number_of_images > 1:
-            image_config_params["number_of_images"] = number_of_images
+            config_params["number_of_images"] = number_of_images
 
-        # Create ImageConfig if we have any image parameters
-        if image_config_params:
-            config_params["image_config"] = types.ImageConfig(**image_config_params)
+        # Note: image_size is not supported on gemini-2.5-flash-image model
+        # It's only available on Imagen models (imagen-3, imagen-4)
+        if image_size is not None:
+            # Log warning but don't fail
+            import warnings
+
+            warnings.warn(
+                f"image_size parameter ({image_size}) is not supported on {self.model_name}. "
+                "It's only available on Imagen models (imagen-3, imagen-4). "
+                "This parameter will be ignored.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         config = types.GenerateContentConfig(**config_params)
 

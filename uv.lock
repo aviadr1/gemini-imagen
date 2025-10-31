@@ -602,10 +602,11 @@ wheels = [
 
 [[package]]
 name = "gemini-imagen"
-version = "0.3.4"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
+    { name = "aiohttp" },
     { name = "google-genai" },
     { name = "langsmith" },
     { name = "pillow" },
@@ -637,6 +638,7 @@ s3 = [
 requires-dist = [
     { name = "aiobotocore", marker = "extra == 's3'", specifier = ">=2.11.0" },
     { name = "aiofiles", specifier = ">=24.0.0" },
+    { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.34.0" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "google-genai", specifier = ">=1.0.0" },

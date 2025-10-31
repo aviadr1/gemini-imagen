@@ -93,7 +93,7 @@ async def main():
 
     print(f"  ✓ Generated {len(result.images)} images")
     for i, img in enumerate(result.images):
-        print(f"    {i+1}. {img.size[0]}x{img.size[1]} - {result.image_labels[i]}")
+        print(f"    {i + 1}. {img.size[0]}x{img.size[1]} - {result.image_labels[i]}")
 
     print("\n" + "=" * 70)
     print("Demo complete! Check the generated PNG files.")
