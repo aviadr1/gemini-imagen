@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image
 
 from gemini_imagen import GeminiImageGenerator, GenerationResult
@@ -25,8 +26,9 @@ class TestGeminiImageGenerator:
         assert generator.model_name == "custom-model"
         assert generator.log_images is True
 
+    @pytest.mark.asyncio
     @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
-    def test_generate_text_only(self, mock_client_class, mock_env_vars, mock_langsmith):
+    async def test_generate_text_only(self, mock_client_class, mock_env_vars, mock_langsmith):
         """Test generating text-only output."""
         # Setup mock response
         mock_response = MagicMock()
@@ -39,14 +41,15 @@ class TestGeminiImageGenerator:
         mock_client_class.return_value = mock_client
 
         generator = GeminiImageGenerator()
-        result = generator.generate(prompt="Test prompt", output_text=True)
+        result = await generator.generate(prompt="Test prompt", output_text=True)
 
         assert isinstance(result, GenerationResult)
         assert result.text == "Test response"
         assert len(result.images) == 0
 
+    @pytest.mark.asyncio
     @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
-    def test_generate_with_image_output(
+    async def test_generate_with_image_output(
         self, mock_client_class, mock_env_vars, tmp_path, mock_langsmith
     ):
         """Test generating image output."""
@@ -69,7 +72,7 @@ class TestGeminiImageGenerator:
 
             generator = GeminiImageGenerator()
             output_path = tmp_path / "output.png"
-            result = generator.generate(
+            result = await generator.generate(
                 prompt="Generate an image", output_images=[str(output_path)]
             )
 
@@ -77,7 +80,43 @@ class TestGeminiImageGenerator:
             assert len(result.images) == 1
             assert isinstance(result.images[0], Image.Image)
 
-    def test_labeled_input_images(self, mock_env_vars, sample_image_path):
+    @pytest.mark.asyncio
+    @patch("gemini_imagen.gemini_image_wrapper.genai.Client")
+    async def test_generate_with_single_string_output(
+        self, mock_client_class, mock_env_vars, tmp_path, mock_langsmith
+    ):
+        """Test generating image output with a single string (not a list)."""
+        # Setup mock response with image data
+        mock_response = MagicMock()
+        mock_response.candidates = [MagicMock()]
+        mock_part = MagicMock()
+        mock_part.inline_data.mime_type = "image/png"
+        mock_part.inline_data.data = b"fake_image_data"
+        mock_response.candidates[0].content.parts = [mock_part]
+
+        with patch("PIL.Image.open") as mock_image_open:
+            mock_img = Image.new("RGB", (100, 100), color="blue")
+            mock_image_open.return_value = mock_img
+
+            # Setup mock client instance
+            mock_client = MagicMock()
+            mock_client.models.generate_content.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            generator = GeminiImageGenerator()
+            output_path = tmp_path / "thumbnail.jpg"
+            # Pass a single string instead of a list
+            result = await generator.generate(
+                prompt="Generate an image", output_images=str(output_path)
+            )
+
+            assert isinstance(result, GenerationResult)
+            assert len(result.images) == 1
+            assert isinstance(result.images[0], Image.Image)
+            assert result.image_location == str(output_path)
+
+    @pytest.mark.asyncio
+    async def test_labeled_input_images(self, mock_env_vars, sample_image_path):
         """Test using labeled input images."""
         generator = GeminiImageGenerator()
 
@@ -87,7 +126,7 @@ class TestGeminiImageGenerator:
         ]
 
         # Test that the method accepts labeled images without error
-        content, image_infos = generator._build_content_with_labels(
+        content, image_infos = await generator._build_content_with_labels(
             prompt="Test prompt", input_images=labeled_images
         )
 

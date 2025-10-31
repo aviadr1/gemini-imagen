@@ -47,6 +47,7 @@ Usage:
     print(result.structured.objects)
 """
 
+import asyncio
 import os
 from enum import Enum
 from io import BytesIO
@@ -60,7 +61,7 @@ from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from .s3_utils import get_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
+from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
 if TYPE_CHECKING:
     from langsmith.run_trees import RunTree
@@ -83,6 +84,7 @@ class ImageType(str, Enum):
     S3 = "s3"
     LOCAL = "local"
     PIL = "pil"
+    HTTP = "http"
 
 
 # Type aliases for better clarity
@@ -103,7 +105,7 @@ class ImageInfo(BaseModel):
     label: str | None = Field(None, description="Optional label for the image")
     type: ImageType = Field(..., description="Type of image source")
     s3_uri: str | None = Field(None, description="S3 URI if type is 's3'")
-    http_url: str | None = Field(None, description="HTTP URL if type is 's3'")
+    http_url: str | None = Field(None, description="HTTP URL if type is 's3' or 'http'")
     local_path: str | None = Field(None, description="Local file path if type is 'local'")
 
 
@@ -174,6 +176,11 @@ class GeminiImageGenerator:
         model_name: str = "gemini-2.5-flash-image",
         api_key: str | None = None,
         log_images: bool = True,
+        # AWS S3 credentials (optional, defaults to environment variables)
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
+        aws_storage_bucket_name: str | None = None,
+        aws_region: str = "us-east-1",
     ) -> None:
         """
         Initialize the Gemini image generator.
@@ -182,6 +189,10 @@ class GeminiImageGenerator:
             model_name: Name of the Gemini model to use for image generation
             api_key: Google API key (defaults to GOOGLE_API_KEY or GEMINI_API_KEY from env)
             log_images: Whether to log images to LangSmith traces (default: True)
+            aws_access_key_id: AWS access key ID (defaults to GV_AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID from env)
+            aws_secret_access_key: AWS secret access key (defaults to GV_AWS_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY from env)
+            aws_storage_bucket_name: Default S3 bucket name (defaults to GV_AWS_STORAGE_BUCKET_NAME or AWS_STORAGE_BUCKET_NAME from env)
+            aws_region: AWS region for S3 operations (default: us-east-1)
 
         Note:
             The image model (gemini-2.5-flash-image) does not support structured output.
@@ -200,19 +211,35 @@ class GeminiImageGenerator:
         self.model_name: str = model_name
         self.log_images: bool = log_images
 
+        # Store AWS credentials for S3 operations
+        self.aws_access_key_id = (
+            aws_access_key_id or os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+        )
+        self.aws_secret_access_key = (
+            aws_secret_access_key
+            or os.getenv("GV_AWS_SECRET_ACCESS_KEY")
+            or os.getenv("AWS_SECRET_ACCESS_KEY")
+        )
+        self.aws_storage_bucket_name = (
+            aws_storage_bucket_name
+            or os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
+            or os.getenv("AWS_STORAGE_BUCKET_NAME")
+        )
+        self.aws_region = aws_region
+
     @traceable(
         name="generate",
         run_type="llm",
         metadata={"provider": "google", "capability": "unified_generation"},
     )
-    def generate(
+    async def generate(
         self,
         prompt: str,
         system_prompt: str | None = None,
         input_images: list[ImageSource] | None = None,
         temperature: float | None = None,
         # Output configuration
-        output_images: list[OutputImageSpec] | None = None,
+        output_images: list[OutputImageSpec] | OutputImageSpec | None = None,
         output_text: bool = False,
         # LangSmith configuration
         run_name: str | None = None,
@@ -326,13 +353,13 @@ class GeminiImageGenerator:
         )
 
         # Load and prepare input images with labels
-        content, image_infos = self._build_content_with_labels(prompt, input_images)
+        content, image_infos = await self._build_content_with_labels(prompt, input_images)
 
         # Log input images
         self._log_input_images(image_infos)
 
         # Call Gemini API
-        response = self._call_gemini(
+        response = await self._call_gemini(
             content=content,
             system_prompt=system_prompt,
             temperature=temperature,
@@ -347,7 +374,7 @@ class GeminiImageGenerator:
 
         # Save and log output images if needed
         if result.images and output_specs:
-            self._save_and_log_images(result, output_specs)
+            await self._save_and_log_images(result, output_specs)
 
         # Log outputs to LangSmith
         self._log_outputs(result)
@@ -355,7 +382,7 @@ class GeminiImageGenerator:
         return result
 
     def _determine_response_modalities(
-        self, output_images: list[OutputImageSpec] | None, output_text: bool
+        self, output_images: list[OutputImageSpec] | OutputImageSpec | None, output_text: bool
     ) -> list[str]:
         """Determine what response modalities to request from Gemini."""
         modalities: list[str] = []
@@ -369,7 +396,7 @@ class GeminiImageGenerator:
         # Default to IMAGE if nothing specified
         return modalities if modalities else [ResponseModality.IMAGE.value]
 
-    def _build_content_with_labels(
+    async def _build_content_with_labels(
         self, prompt: str, input_images: list[ImageSource] | None
     ) -> tuple[list[Union[str, Image.Image, dict[str, Any]]], list[ImageInfo]]:
         """
@@ -386,28 +413,35 @@ class GeminiImageGenerator:
 
         # Process input images with labels
         if input_images:
+            # Prepare all image loading tasks
+            load_tasks: list[tuple[str | None, RawImageSource]] = []
             for img_source in input_images:
                 # Check if it's a labeled image tuple
                 if isinstance(img_source, tuple) and len(img_source) == 2:
-                    label, img = img_source
-                    content.append(label)  # Add label text before image
-
-                    # Load image and create metadata
-                    loaded_img, info = self._load_single_image(img, label)
-                    content.append(loaded_img)
-                    image_infos.append(info)
+                    label_str, img = img_source
+                    load_tasks.append((label_str, img))
                 else:
                     # Regular unlabeled image
-                    loaded_img, info = self._load_single_image(img_source, None)
-                    content.append(loaded_img)
-                    image_infos.append(info)
+                    load_tasks.append((None, img_source))
+
+            # Load all images in parallel using asyncio.gather
+            loaded_results = await asyncio.gather(
+                *[self._load_single_image(img, label) for label, img in load_tasks]
+            )
+
+            # Build content list with labels interleaved in correct order
+            for (label, _), (loaded_img, info) in zip(load_tasks, loaded_results, strict=False):
+                if label:
+                    content.append(label)  # Add label text before image
+                content.append(loaded_img)
+                image_infos.append(info)
 
         # Add prompt at the end
         content.append(prompt)
 
         return content, image_infos
 
-    def _load_single_image(
+    async def _load_single_image(
         self, img_source: RawImageSource, label: str | None
     ) -> tuple[Image.Image, ImageInfo]:
         """Load a single image and create its metadata."""
@@ -425,6 +459,14 @@ class GeminiImageGenerator:
                     http_url=http_url,
                     local_path=None,
                 )
+            elif is_http_url(img_path):
+                info = ImageInfo(
+                    label=label,
+                    type=ImageType.HTTP,
+                    http_url=img_path,
+                    s3_uri=None,
+                    local_path=None,
+                )
             else:
                 info = ImageInfo(
                     label=label,
@@ -434,7 +476,11 @@ class GeminiImageGenerator:
                     http_url=None,
                 )
 
-            loaded_img = load_image(img_source)
+            loaded_img = await load_image(
+                img_source,
+                access_key_id=self.aws_access_key_id,
+                secret_access_key=self.aws_secret_access_key,
+            )
         else:
             # PIL Image object
             loaded_img = img_source
@@ -464,13 +510,15 @@ class GeminiImageGenerator:
                 if info.type == ImageType.S3:
                     run_tree.inputs[f"{prefix}_s3_uri"] = info.s3_uri
                     run_tree.inputs[f"{prefix}_http_url"] = info.http_url
+                elif info.type == ImageType.HTTP:
+                    run_tree.inputs[f"{prefix}_http_url"] = info.http_url
                 elif info.type == ImageType.LOCAL:
                     run_tree.inputs[f"{prefix}_local_path"] = info.local_path
 
         except Exception as e:
             print(f"Warning: Could not log input images to LangSmith: {e}")
 
-    def _call_gemini(
+    async def _call_gemini(
         self,
         content: list[Union[str, Image.Image, dict[str, Any]]],
         system_prompt: str | None,
@@ -478,6 +526,8 @@ class GeminiImageGenerator:
         modalities: list[str],
     ) -> types.GenerateContentResponse:
         """Call Gemini API and return response."""
+        import asyncio
+
         config_params: dict[str, Any] = {
             "response_modalities": modalities,
         }
@@ -492,10 +542,15 @@ class GeminiImageGenerator:
 
         config = types.GenerateContentConfig(**config_params)
 
-        return self.client.models.generate_content(
-            model=self.model_name,
-            contents=content,  # type: ignore[arg-type]
-            config=config,
+        # Run the Gemini API call in executor since it's synchronous
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self.client.models.generate_content(
+                model=self.model_name,
+                contents=content,  # type: ignore[arg-type]
+                config=config,
+            ),
         )
 
     def _extract_response(self, response: types.GenerateContentResponse) -> GenerationResult:
@@ -546,12 +601,17 @@ class GeminiImageGenerator:
             return None
 
     def _parse_output_specs(
-        self, output_images: list[OutputImageSpec]
+        self, output_images: list[OutputImageSpec] | OutputImageSpec
     ) -> list[tuple[str | None, Union[str, Path]]]:
         """Parse output image specifications into (label, location) tuples."""
+        # Normalize to list if single spec provided
+        specs_list: list[OutputImageSpec] = (
+            [output_images] if not isinstance(output_images, list) else output_images
+        )
+
         specs: list[tuple[str | None, Union[str, Path]]] = []
 
-        for spec in output_images:
+        for spec in specs_list:
             if isinstance(spec, tuple) and len(spec) == 2:
                 label, location = spec
                 specs.append((label, location))
@@ -560,17 +620,29 @@ class GeminiImageGenerator:
 
         return specs
 
-    def _save_and_log_images(
+    async def _save_and_log_images(
         self, result: GenerationResult, output_specs: list[tuple[str | None, Union[str, Path]]]
     ) -> None:
         """Save generated images and log to LangSmith."""
-        # Match images with output specs
-        for idx, (img, (label, location)) in enumerate(
-            zip(result.images, output_specs, strict=False)
-        ):
-            # Save the image
-            location_str, s3_uri, http_url = save_image(img, location)
+        # Prepare save tasks for parallel execution
+        save_tasks = [
+            save_image(
+                img,
+                location,
+                region=self.aws_region,
+                access_key_id=self.aws_access_key_id,
+                secret_access_key=self.aws_secret_access_key,
+            )
+            for img, (label, location) in zip(result.images, output_specs, strict=False)
+        ]
 
+        # Save all images in parallel using asyncio.gather
+        save_results = await asyncio.gather(*save_tasks)
+
+        # Update result and log to LangSmith
+        for idx, ((label, _), (location_str, s3_uri, http_url)) in enumerate(
+            zip(output_specs, save_results, strict=False)
+        ):
             # Update result
             result.image_labels[idx] = label
             result.image_locations.append(location_str)

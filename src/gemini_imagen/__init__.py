@@ -41,10 +41,12 @@ from .gemini_image_wrapper import (
     ResponseModality,
 )
 from .s3_utils import (
+    download_from_http,
     download_from_s3,
+    get_async_s3_session,
     get_default_bucket,
     get_http_url,
-    get_s3_client,
+    is_http_url,
     is_s3_uri,
     load_image,
     parse_s3_uri,
@@ -59,12 +61,14 @@ __all__ = [
     "ImageType",
     # Enums
     "ResponseModality",
+    "download_from_http",
     "download_from_s3",
+    "get_async_s3_session",
     "get_default_bucket",
     "get_http_url",
-    "get_s3_client",
+    "is_http_url",
     "is_s3_uri",
-    # S3 utilities
+    # Image utilities
     "load_image",
     "parse_s3_uri",
     "save_image",
