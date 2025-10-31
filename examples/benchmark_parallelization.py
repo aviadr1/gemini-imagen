@@ -33,7 +33,7 @@ async def benchmark_sequential(images: list[Image.Image], output_dir: Path, dela
 
     for i, img in enumerate(images):
         output_path = output_dir / f"sequential_{i}.png"
-        print(f"  Saving image {i+1}/{len(images)}...", end=" ", flush=True)
+        print(f"  Saving image {i + 1}/{len(images)}...", end=" ", flush=True)
         result = await simulate_slow_network_save(img, str(output_path), delay)
         results.append(result)
         print(f"✓ ({time.time() - start_time:.2f}s elapsed)")
@@ -87,7 +87,7 @@ async def main():
     # Create sample images
     print(f"\nCreating {num_images} sample images...")
     images = [
-        Image.new("RGB", (100, 100), color=f"#{i*50:02x}{i*30:02x}{i*20:02x}")
+        Image.new("RGB", (100, 100), color=f"#{i * 50:02x}{i * 30:02x}{i * 20:02x}")
         for i in range(num_images)
     ]
     print(f"  ✓ Created {len(images)} images")
@@ -109,7 +109,7 @@ async def main():
     print(f"\nSequential: {seq_time:.2f}s")
     print(f"Parallel:   {par_time:.2f}s")
     print(f"\n🚀 Speedup:     {speedup:.2f}x faster")
-    print(f"⏰ Time saved:  {time_saved:.2f}s ({time_saved/seq_time*100:.1f}% reduction)")
+    print(f"⏰ Time saved:  {time_saved:.2f}s ({time_saved / seq_time * 100:.1f}% reduction)")
 
     # Theoretical vs actual
     theoretical_time = network_delay  # Should take about 1 network delay in parallel

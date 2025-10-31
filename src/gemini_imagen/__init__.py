@@ -43,7 +43,6 @@ from .gemini_image_wrapper import (
 from .s3_utils import (
     download_from_http,
     download_from_s3,
-    get_async_s3_session,
     get_default_bucket,
     get_http_url,
     is_http_url,
@@ -63,7 +62,6 @@ __all__ = [
     "ResponseModality",
     "download_from_http",
     "download_from_s3",
-    "get_async_s3_session",
     "get_default_bucket",
     "get_http_url",
     "is_http_url",

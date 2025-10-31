@@ -10,51 +10,46 @@ import asyncio
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import Union
 
 import aiofiles
 import aiohttp
 from dotenv import load_dotenv
 from PIL import Image
 
-# Conditional aioboto3 import
-if TYPE_CHECKING:
-    import aioboto3
+# Conditional aiobotocore import
+try:
+    from aiobotocore.session import get_session
 
-    HAS_AIOBOTO3 = True
-else:
-    try:
-        import aioboto3
-
-        HAS_AIOBOTO3 = True
-    except ImportError:
-        HAS_AIOBOTO3 = False
-        aioboto3 = None  # type: ignore[assignment]
+    HAS_AIOBOTOCORE = True
+except ImportError:
+    HAS_AIOBOTOCORE = False
+    get_session = None  # type: ignore[assignment]
 
 # Load environment variables
 load_dotenv()
 
 
-def get_async_s3_session(
+def _get_aws_credentials(
     access_key_id: str | None = None, secret_access_key: str | None = None
-) -> Any:  # aioboto3.Session
+) -> tuple[str, str]:
     """
-    Create and return an aioboto3 session for async S3 operations.
+    Retrieve AWS credentials from parameters or environment variables.
 
     Args:
         access_key_id: AWS access key ID (defaults to environment variables)
         secret_access_key: AWS secret access key (defaults to environment variables)
 
     Returns:
-        aioboto3.Session: Configured aioboto3 session
+        Tuple[str, str]: (access_key_id, secret_access_key)
 
     Raises:
         ValueError: If required AWS credentials are not found
-        ImportError: If aioboto3 is not installed
+        ImportError: If aiobotocore is not installed
     """
-    if not HAS_AIOBOTO3:
+    if not HAS_AIOBOTOCORE:
         raise ImportError(
-            "aioboto3 is required for S3 operations. Install it with: pip install gemini-imagen[s3]"
+            "aiobotocore is required for S3 operations. Install it with: pip install gemini-imagen[s3]"
         )
 
     access_key = (
@@ -72,7 +67,7 @@ def get_async_s3_session(
             "environment variables, or pass access_key_id and secret_access_key parameters."
         )
 
-    return aioboto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key)  # type: ignore[union-attr]
+    return access_key, secret_key
 
 
 def get_default_bucket(bucket_name: str | None = None) -> str:
@@ -202,7 +197,9 @@ async def upload_to_s3(
     if bucket is None:
         bucket = get_default_bucket()
 
-    session = get_async_s3_session(access_key_id=access_key_id, secret_access_key=secret_access_key)
+    access_key, secret_key = _get_aws_credentials(
+        access_key_id=access_key_id, secret_access_key=secret_access_key
+    )
 
     # Handle PIL Image objects
     if isinstance(local_path, Image.Image):
@@ -213,10 +210,13 @@ async def upload_to_s3(
         img_bytes = img_byte_arr.getvalue()
 
         # Upload from bytes
-        async with session.client("s3") as s3_client:  # type: ignore[union-attr]
+        session = get_session()  # type: ignore[misc]
+        async with session.create_client(
+            "s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key
+        ) as s3_client:
             await s3_client.put_object(
                 Bucket=bucket, Key=s3_key, Body=img_bytes, ContentType="image/png"
-            )  # type: ignore[union-attr]
+            )
     else:
         # Upload from file path
         local_path = Path(local_path)
@@ -228,10 +228,13 @@ async def upload_to_s3(
 
         async with aiofiles.open(local_path, "rb") as f:
             file_data = await f.read()
-            async with session.client("s3") as s3_client:  # type: ignore[union-attr]
+            session = get_session()  # type: ignore[misc]
+            async with session.create_client(
+                "s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key
+            ) as s3_client:
                 await s3_client.put_object(
                     Bucket=bucket, Key=s3_key, Body=file_data, ContentType=content_type
-                )  # type: ignore[union-attr]
+                )
 
     # Generate URLs
     s3_uri = f"s3://{bucket}/{s3_key}"
@@ -286,14 +289,19 @@ async def download_from_s3(
         ClientError: If download fails
     """
     bucket, key = parse_s3_uri(s3_uri)
-    session = get_async_s3_session(access_key_id=access_key_id, secret_access_key=secret_access_key)
+    access_key, secret_key = _get_aws_credentials(
+        access_key_id=access_key_id, secret_access_key=secret_access_key
+    )
 
     # Download to BytesIO buffer
     buffer = BytesIO()
-    async with session.client("s3") as s3_client:  # type: ignore[union-attr]
-        response = await s3_client.get_object(Bucket=bucket, Key=key)  # type: ignore[union-attr]
-        async with response["Body"] as stream:  # type: ignore[union-attr]
-            buffer.write(await stream.read())  # type: ignore[union-attr]
+    session = get_session()  # type: ignore[misc]
+    async with session.create_client(
+        "s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key
+    ) as s3_client:
+        response = await s3_client.get_object(Bucket=bucket, Key=key)
+        async with response["Body"] as stream:
+            buffer.write(await stream.read())
 
     buffer.seek(0)
 

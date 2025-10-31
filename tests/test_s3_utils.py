@@ -60,15 +60,21 @@ class TestS3Operations:
     """Test S3 upload/download operations."""
 
     @pytest.mark.asyncio
-    @patch("gemini_imagen.s3_utils.get_async_s3_session")
+    @patch("gemini_imagen.s3_utils._get_aws_credentials")
+    @patch("gemini_imagen.s3_utils.get_session")
     @patch("gemini_imagen.s3_utils.get_http_url")
-    async def test_upload_to_s3(self, mock_get_url, mock_get_session, tmp_path, sample_image):
+    async def test_upload_to_s3(
+        self, mock_get_url, mock_get_session_func, mock_get_creds, tmp_path, sample_image
+    ):
         """Test uploading file to S3."""
         from unittest.mock import AsyncMock
 
         # Create a test file
         test_file = tmp_path / "test.png"
         sample_image.save(test_file)
+
+        # Mock credentials
+        mock_get_creds.return_value = ("fake-key", "fake-secret")
 
         # Create async mock for S3 client
         mock_s3_client = MagicMock()
@@ -81,8 +87,8 @@ class TestS3Operations:
 
         # Setup session
         mock_session = MagicMock()
-        mock_session.client = MagicMock(return_value=mock_client_context)
-        mock_get_session.return_value = mock_session
+        mock_session.create_client = MagicMock(return_value=mock_client_context)
+        mock_get_session_func.return_value = mock_session
         mock_get_url.return_value = "https://test-bucket.s3.us-east-1.amazonaws.com/path/test.png"
 
         # Test upload - API is upload_to_s3(local_path, s3_key, bucket, region)
@@ -93,14 +99,24 @@ class TestS3Operations:
         assert http_url == "https://test-bucket.s3.us-east-1.amazonaws.com/path/test.png"
 
     @pytest.mark.asyncio
-    @patch("gemini_imagen.s3_utils.get_async_s3_session")
+    @patch("gemini_imagen.s3_utils._get_aws_credentials")
+    @patch("gemini_imagen.s3_utils.get_session")
     @patch("gemini_imagen.s3_utils.parse_s3_uri")
     @patch("PIL.Image.open")
     async def test_download_from_s3(
-        self, mock_image_open, mock_parse, mock_get_session, tmp_path, sample_image
+        self,
+        mock_image_open,
+        mock_parse,
+        mock_get_session_func,
+        mock_get_creds,
+        tmp_path,
+        sample_image,
     ):
         """Test downloading file from S3."""
         from unittest.mock import AsyncMock
+
+        # Mock credentials
+        mock_get_creds.return_value = ("fake-key", "fake-secret")
 
         # Mock the S3 response stream
         mock_stream = MagicMock()
@@ -121,8 +137,8 @@ class TestS3Operations:
 
         # Setup session
         mock_session = MagicMock()
-        mock_session.client = MagicMock(return_value=mock_client_context)
-        mock_get_session.return_value = mock_session
+        mock_session.create_client = MagicMock(return_value=mock_client_context)
+        mock_get_session_func.return_value = mock_session
 
         mock_parse.return_value = ("test-bucket", "path/file.png")
         mock_image_open.return_value = sample_image

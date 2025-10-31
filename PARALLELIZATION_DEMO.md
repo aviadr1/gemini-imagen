@@ -259,7 +259,7 @@ The speedup scales linearly with the number of images:
 
 3. **Non-blocking I/O:**
    - `aiohttp` for HTTP downloads (async HTTP client)
-   - `aioboto3` for S3 uploads (async AWS SDK)
+   - `aiobotocore` for S3 uploads (async AWS SDK)
    - `aiofiles` for local file operations (async file I/O)
 
 ### Order Preservation
