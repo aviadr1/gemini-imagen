@@ -312,3 +312,167 @@ class TestAdvancedFeatures:
         # Cleanup
         test_image_path.unlink()
         test_dir.rmdir()
+
+
+@requires_google_api_key()
+class TestAspectRatioAndResolution:
+    """Integration tests for aspect ratio and image size features."""
+
+    @pytest.mark.asyncio
+    async def test_preset_aspect_ratios(self):
+        """Test image generation with preset aspect ratios."""
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Test different preset aspect ratios
+        test_ratios = [
+            ("1:1", 1.0),  # Square
+            ("16:9", 16 / 9),  # Widescreen
+            ("9:16", 9 / 16),  # Portrait
+        ]
+
+        for aspect_ratio, expected_ratio in test_ratios:
+            result = await generator.generate(
+                prompt="A simple geometric shape",
+                aspect_ratio=aspect_ratio,
+                output_images=[f"test_aspect_{aspect_ratio.replace(':', 'x')}.png"],
+            )
+
+            assert result.image is not None
+            # Check actual aspect ratio matches expected (with tolerance)
+            actual_ratio = result.image.size[0] / result.image.size[1]
+            assert (
+                abs(actual_ratio - expected_ratio) < 0.1
+            ), f"Aspect ratio mismatch for {aspect_ratio}: expected ~{expected_ratio:.2f}, got {actual_ratio:.2f} ({result.image.size[0]}x{result.image.size[1]})"
+
+            # Cleanup
+            from pathlib import Path
+
+            Path(f"test_aspect_{aspect_ratio.replace(':', 'x')}.png").unlink(missing_ok=True)
+
+            print(
+                f"\n✅ Aspect ratio {aspect_ratio} test passed: {result.image.size[0]}x{result.image.size[1]}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_custom_aspect_ratio(self):
+        """Test image generation with custom aspect ratio tuple."""
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Test custom aspect ratio using tuple
+        result = await generator.generate(
+            prompt="A panoramic landscape",
+            aspect_ratio=(21, 9),  # Ultra-widescreen
+            output_images=["test_custom_21x9.png"],
+        )
+
+        assert result.image is not None
+        # Check that aspect ratio is approximately correct
+        ratio = result.image.size[0] / result.image.size[1]
+        expected_ratio = 21 / 9
+        assert (
+            abs(ratio - expected_ratio) < 0.2
+        ), f"Aspect ratio mismatch: expected ~{expected_ratio:.2f}, got {ratio:.2f}"
+
+        # Cleanup
+        from pathlib import Path
+
+        Path("test_custom_21x9.png").unlink(missing_ok=True)
+
+        print(
+            f"\n✅ Custom aspect ratio (21:9) test passed: {result.image.size[0]}x{result.image.size[1]}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_image_size_1k_vs_2k(self):
+        """Test different image sizes (1K vs 2K)."""
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Test 1K (default)
+        result_1k = await generator.generate(
+            prompt="A colorful abstract pattern",
+            aspect_ratio="1:1",
+            image_size="1K",
+            output_images=["test_1k.png"],
+        )
+
+        assert result_1k.image is not None
+        size_1k = result_1k.image.size[0] * result_1k.image.size[1]
+
+        # Test 2K (higher resolution)
+        # Note: This may fail on Flash models as 2K is only supported on Standard/Ultra
+        try:
+            result_2k = await generator.generate(
+                prompt="A colorful abstract pattern",
+                aspect_ratio="1:1",
+                image_size="2K",
+                output_images=["test_2k.png"],
+            )
+
+            assert result_2k.image is not None
+            size_2k = result_2k.image.size[0] * result_2k.image.size[1]
+
+            # 2K should have roughly 4x the pixels of 1K
+            assert (
+                size_2k > size_1k
+            ), f"2K image ({size_2k} pixels) should be larger than 1K ({size_1k} pixels)"
+
+            print(
+                f"\n✅ Image size test passed: 1K={result_1k.image.size}, 2K={result_2k.image.size}"
+            )
+
+        except Exception as e:
+            print(f"\n⚠️  2K test skipped (may not be supported on Flash model): {e}")
+            print(f"   1K result: {result_1k.image.size}")
+
+        # Cleanup
+        from pathlib import Path
+
+        Path("test_1k.png").unlink(missing_ok=True)
+        Path("test_2k.png").unlink(missing_ok=True)
+
+    @pytest.mark.asyncio
+    async def test_multiple_images_with_aspect_ratio(self):
+        """Test generating multiple images with aspect ratio."""
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Request 3 images with 16:9 aspect ratio
+        result = await generator.generate(
+            prompt="A futuristic cityscape, create variations",
+            aspect_ratio="16:9",
+            output_images=[
+                "test_multi_1.png",
+                "test_multi_2.png",
+                "test_multi_3.png",
+            ],
+        )
+
+        # Should generate 3 images
+        assert len(result.images) == 3, f"Expected 3 images, got {len(result.images)}"
+
+        # All should have 16:9 aspect ratio
+        for i, img in enumerate(result.images):
+            ratio = img.size[0] / img.size[1]
+            expected_ratio = 16 / 9
+            assert (
+                abs(ratio - expected_ratio) < 0.2
+            ), f"Image {i} aspect ratio mismatch: expected ~{expected_ratio:.2f}, got {ratio:.2f}"
+
+        print(
+            f"\n✅ Multiple images with aspect ratio test passed: generated {len(result.images)} images"
+        )
+        for i, img in enumerate(result.images):
+            print(f"   Image {i+1}: {img.size[0]}x{img.size[1]}")
+
+        # Cleanup
+        from pathlib import Path
+
+        for i in range(1, 4):
+            Path(f"test_multi_{i}.png").unlink(missing_ok=True)

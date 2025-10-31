@@ -631,14 +631,21 @@ class GeminiImageGenerator:
             config_params["system_instruction"] = system_prompt
 
         # Add image generation parameters if specified
+        # These go in a separate ImageConfig object
+        image_config_params: dict[str, Any] = {}
+
         if aspect_ratio is not None:
-            config_params["aspect_ratio"] = aspect_ratio
+            image_config_params["aspect_ratio"] = aspect_ratio
 
         if image_size is not None:
-            config_params["image_size"] = image_size
+            image_config_params["image_size"] = image_size
 
         if number_of_images > 1:
-            config_params["number_of_images"] = number_of_images
+            image_config_params["number_of_images"] = number_of_images
+
+        # Create ImageConfig if we have any image parameters
+        if image_config_params:
+            config_params["image_config"] = types.ImageConfig(**image_config_params)
 
         config = types.GenerateContentConfig(**config_params)
 
