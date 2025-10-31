@@ -1,6 +1,6 @@
 [project]
 name = "gemini-imagen"
-version = "0.3.2"
+version = "0.3.3"
 description = "A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities with S3 and LangSmith integration"
 readme = "README.md"
 requires-python = ">=3.12"
