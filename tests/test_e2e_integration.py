@@ -29,12 +29,13 @@ def set_langsmith_project():
 class TestRealGeminiAPI:
     """Tests that hit the real Gemini API."""
 
-    def test_basic_image_generation(self):
+    @pytest.mark.asyncio
+    async def test_basic_image_generation(self):
         """Test basic text-to-image generation with real API."""
         from gemini_imagen import GeminiImageGenerator
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="A simple red circle",
             output_images=["test_e2e_circle.png"],
             run_name="test_basic_image_generation",
@@ -56,7 +57,8 @@ class TestRealGeminiAPI:
 class TestRealS3Integration:
     """Tests that require both Gemini API and AWS S3."""
 
-    def test_s3_image_generation(self):
+    @pytest.mark.asyncio
+    async def test_s3_image_generation(self):
         """Test image generation with S3 output."""
         from datetime import datetime
 
@@ -70,7 +72,7 @@ class TestRealS3Integration:
         s3_path = f"s3://{aws_bucket}/test_e2e/circle_{timestamp}.png"
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="A simple blue square",
             output_images=[s3_path],
             run_name="test_s3_image_generation",
@@ -92,7 +94,8 @@ class TestRealS3Integration:
 class TestRealLangSmithLogging:
     """Tests that verify LangSmith logging actually works."""
 
-    def test_langsmith_s3_url_logging(self):
+    @pytest.mark.asyncio
+    async def test_langsmith_s3_url_logging(self):
         """Test that S3 URLs are actually logged to LangSmith."""
         import os
         from datetime import datetime
@@ -110,7 +113,7 @@ class TestRealLangSmithLogging:
         s3_path = f"s3://{aws_bucket}/test_langsmith/test_{timestamp}.png"
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="A simple test image for LangSmith logging",
             output_images=[("Test Image", s3_path)],
             run_name="test_langsmith_s3_url_logging",
@@ -140,7 +143,8 @@ class TestRealLangSmithLogging:
 class TestAdvancedFeatures:
     """Comprehensive tests for advanced features with real API."""
 
-    def test_labeled_inputs_and_outputs(self):
+    @pytest.mark.asyncio
+    async def test_labeled_inputs_and_outputs(self):
         """Test labeled input images and labeled output images with S3."""
         from datetime import datetime
         from pathlib import Path
@@ -169,7 +173,7 @@ class TestAdvancedFeatures:
         s3_path2 = f"s3://{aws_bucket}/test_e2e/advanced/output2_{timestamp}.png"
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="Create two variations: one combining the red color with circular shape, another with blue and square shape",
             system_prompt="You are an expert image generator. Create variations based on the provided images.",
             input_images=[
@@ -205,7 +209,8 @@ class TestAdvancedFeatures:
         img2_path.unlink()
         test_dir.rmdir()
 
-    def test_multiple_outputs_with_text(self):
+    @pytest.mark.asyncio
+    async def test_multiple_outputs_with_text(self):
         """Test generating multiple images with text output."""
         from datetime import datetime
 
@@ -222,7 +227,7 @@ class TestAdvancedFeatures:
         ]
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="Generate two landscape images: one at sunrise and one at sunset. Also explain the differences in lighting and colors between them.",
             system_prompt="Create beautiful landscape images and provide technical analysis.",
             output_images=[
@@ -251,7 +256,8 @@ class TestAdvancedFeatures:
         print(f"   S3 URIs: {result.image_s3_uris}")
         print(f"   Text preview: {result.text[:100]}...")
 
-    def test_image_analysis_with_system_prompt(self):
+    @pytest.mark.asyncio
+    async def test_image_analysis_with_system_prompt(self):
         """Test image analysis with system prompt and text-only output."""
         from pathlib import Path
 
@@ -276,7 +282,7 @@ class TestAdvancedFeatures:
         img.save(test_image_path)
 
         generator = GeminiImageGenerator(log_images=True)
-        result = generator.generate(
+        result = await generator.generate(
             prompt="Describe this image in detail, focusing on the color gradient pattern and dimensions.",
             system_prompt="You are a professional image analyst. Provide technical, precise descriptions of images.",
             input_images=[("Gradient Image:", str(test_image_path))],
