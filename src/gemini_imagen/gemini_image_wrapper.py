@@ -3,13 +3,12 @@ Gemini Image Generation with S3 and LangSmith Integration
 ==========================================================
 
 This module provides a clean, unified API for Google Gemini image generation
-with full S3 support, structured output, and LangSmith tracing.
+with full S3 support and LangSmith tracing.
 
 Main API:
     GeminiImageGenerator.generate() - Unified method supporting:
         - Labeled input images
         - Multiple output images
-        - Structured output (Pydantic models)
         - Text, image, or combined outputs
 
 Usage:
@@ -34,17 +33,9 @@ Usage:
         output_images=["s3://bucket/blended.png"]
     )
 
-    # Structured output
-    class Analysis(BaseModel):
-        objects: list[str]
-        colors: list[str]
-
-    result = generator.generate(
-        prompt="Analyze this image",
-        input_images=["image.png"],
-        output_schema=Analysis
-    )
-    print(result.structured.objects)
+    # Structured output is not available from the image model. See the
+    # "Structured Output Limitation" section in the README for details on the
+    # current limitation.
 """
 
 import asyncio
@@ -163,14 +154,19 @@ class ImageInfo(BaseModel):
 
 
 class GenerationResult(BaseModel):
-    """Result from image generation with support for multiple images and structured output."""
+    """Result from image generation with support for multiple images."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    # Text or structured output (mutually exclusive)
+    # Text output from the model (structured output is unavailable for image models)
     text: str | None = Field(None, description="Generated text response")
     structured: Any | None = Field(
-        None, description="Structured output as Pydantic instance", exclude=True
+        None,
+        description=(
+            "Reserved for compatibility with text models. The Gemini image model does "
+            "not provide structured output."
+        ),
+        exclude=True,
     )
 
     # Multiple images support
@@ -214,13 +210,12 @@ class GenerationResult(BaseModel):
 
 class GeminiImageGenerator:
     """
-    Unified API for Gemini image generation with S3, structured output, and LangSmith support.
+    Unified API for Gemini image generation with S3 and LangSmith support.
 
     This class provides a single generate() method that handles:
     - Text-to-image generation
     - Image editing with labeled inputs
     - Multi-image composition
-    - Image analysis with structured output
     - Multiple image generation
     """
 
@@ -249,8 +244,7 @@ class GeminiImageGenerator:
 
         Note:
             The image model (gemini-2.5-flash-image) does not support structured output.
-            For structured output, use a separate text model (gemini-2.5-flash) after
-            image generation/analysis.
+            Requests for JSON schemas will be ignored by the API.
         """
         api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
 
@@ -346,30 +340,8 @@ class GeminiImageGenerator:
                 Plus backward-compatible properties: image, image_location, image_s3_uri, image_http_url
 
         Note:
-            The image model does not support structured output (JSON schemas).
-            For structured output, use a separate call with gemini-2.5-flash:
-
-            ```python
-            # Step 1: Generate or analyze image
-            result = generator.generate(
-                prompt="Describe this image",
-                input_images=["image.png"],
-                output_text=True
-            )
-
-            # Step 2: Get structured output (separate model)
-            from google import genai
-            from google.genai import types
-
-            client = genai.Client(api_key='your-api-key')
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=result.text + "\\n\\nFormat as JSON with fields: objects, colors, mood",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
-                )
-            )
-            ```
+            The image model does not support structured output (JSON schemas), so
+            requests for structured data will return plain text instead.
 
         Examples:
             # Labeled input images
