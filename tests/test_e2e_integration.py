@@ -387,54 +387,27 @@ class TestAspectRatioAndResolution:
         )
 
     @pytest.mark.asyncio
-    async def test_image_size_1k_vs_2k(self):
-        """Test different image sizes (1K vs 2K)."""
+    async def test_image_size_not_supported(self):
+        """Test that image_size parameter raises ValueError on gemini-2.5-flash-image."""
         from gemini_imagen import GeminiImageGenerator
 
         generator = GeminiImageGenerator(log_images=False)
 
-        # Test 1K (default)
-        result_1k = await generator.generate(
-            prompt="A colorful abstract pattern",
-            aspect_ratio="1:1",
-            image_size="1K",
-            output_images=["test_1k.png"],
-        )
-
-        assert result_1k.image is not None
-        size_1k = result_1k.image.size[0] * result_1k.image.size[1]
-
-        # Test 2K (higher resolution)
-        # Note: This may fail on Flash models as 2K is only supported on Standard/Ultra
-        try:
-            result_2k = await generator.generate(
+        # Test that image_size raises ValueError for gemini-2.5-flash-image
+        with pytest.raises(ValueError) as exc_info:
+            await generator.generate(
                 prompt="A colorful abstract pattern",
                 aspect_ratio="1:1",
-                image_size="2K",
-                output_images=["test_2k.png"],
+                image_size="1K",  # Should raise ValueError
+                output_images=["test_1k.png"],
             )
 
-            assert result_2k.image is not None
-            size_2k = result_2k.image.size[0] * result_2k.image.size[1]
+        error_msg = str(exc_info.value)
+        assert "image_size parameter is not supported" in error_msg
+        assert "gemini-2.5-flash-image" in error_msg
+        assert "Imagen models" in error_msg
 
-            # 2K should have roughly 4x the pixels of 1K
-            assert (
-                size_2k > size_1k
-            ), f"2K image ({size_2k} pixels) should be larger than 1K ({size_1k} pixels)"
-
-            print(
-                f"\n✅ Image size test passed: 1K={result_1k.image.size}, 2K={result_2k.image.size}"
-            )
-
-        except Exception as e:
-            print(f"\n⚠️  2K test skipped (may not be supported on Flash model): {e}")
-            print(f"   1K result: {result_1k.image.size}")
-
-        # Cleanup
-        from pathlib import Path
-
-        Path("test_1k.png").unlink(missing_ok=True)
-        Path("test_2k.png").unlink(missing_ok=True)
+        print("\n✅ image_size parameter correctly raises ValueError on gemini-2.5-flash-image")
 
     @pytest.mark.asyncio
     async def test_multiple_images_with_aspect_ratio(self):
