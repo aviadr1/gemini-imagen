@@ -120,3 +120,8 @@ disallow_incomplete_defs = false
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+]

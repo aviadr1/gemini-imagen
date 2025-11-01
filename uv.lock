@@ -634,6 +634,11 @@ s3 = [
     { name = "boto3" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiobotocore", marker = "extra == 's3'", specifier = ">=2.11.0" },
@@ -659,6 +664,9 @@ requires-dist = [
     { name = "types-pillow", marker = "extra == 'dev'", specifier = ">=10.0.0" },
 ]
 provides-extras = ["s3", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pre-commit", specifier = ">=4.3.0" }]
 
 [[package]]
 name = "google-auth"

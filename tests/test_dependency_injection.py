@@ -139,9 +139,7 @@ def test_gemini_generator_falls_back_to_standard_aws_env(
     assert generator.aws_storage_bucket_name == "aws-bucket"
 
 
-def test_gemini_generator_requires_api_key(
-    mock_gemini_client, _clear_env
-) -> None:
+def test_gemini_generator_requires_api_key(mock_gemini_client, _clear_env) -> None:
     """Initialization should fail when no API key can be resolved."""
 
     with pytest.raises(ValueError) as exc_info:
