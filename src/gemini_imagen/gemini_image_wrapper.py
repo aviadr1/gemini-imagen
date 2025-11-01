@@ -39,6 +39,7 @@ Usage:
 """
 
 import asyncio
+import logging
 import os
 from enum import Enum
 from io import BytesIO
@@ -56,6 +57,29 @@ from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3
 
 if TYPE_CHECKING:
     from langsmith.run_trees import RunTree
+
+
+logger = logging.getLogger(__name__)
+
+
+def _patch_langsmith_serialization() -> None:
+    """Ensure LangSmith prefers modern Pydantic serialization helpers."""
+
+    try:
+        from langsmith._internal import _serde  # type: ignore import-error
+    except Exception:  # pragma: no cover - safety net for optional dependency
+        return
+
+    methods = getattr(_serde, "_serialization_methods", None)
+    if not isinstance(methods, list):
+        return
+
+    filtered_methods = [entry for entry in methods if entry[0] != "dict"]
+    if len(filtered_methods) != len(methods):
+        _serde._serialization_methods = filtered_methods
+
+
+_patch_langsmith_serialization()
 
 # Load environment variables
 load_dotenv()
@@ -397,7 +421,8 @@ class GeminiImageGenerator:
                 f"Invalid image_size: {image_size}. Must be one of {VALID_IMAGE_SIZES}"
             )
 
-        # Determine number of images to generate based on output_images
+        # Determine requested output specifications and candidate count
+        output_specs: list[tuple[str | None, Union[str, Path]]] = []
         if output_images is not None:
             output_specs = self._parse_output_specs(output_images)
             number_of_images = len(output_specs) if output_specs else 1
@@ -429,9 +454,6 @@ class GeminiImageGenerator:
         # Extract and process results
         result = self._extract_response(response)
 
-        # Parse output image specs
-        output_specs = self._parse_output_specs(output_images) if output_images else []
-
         # Save and log output images if needed
         if result.images and output_specs:
             await self._save_and_log_images(result, output_specs)
@@ -455,6 +477,55 @@ class GeminiImageGenerator:
 
         # Default to IMAGE if nothing specified
         return modalities if modalities else [ResponseModality.IMAGE.value]
+
+    def _coerce_candidate_count(self, requested: int) -> int:
+        """Return a candidate count supported by the current model."""
+
+        if requested <= 1:
+            return 1
+
+        return requested if "imagen" in self.model_name.lower() else 1
+
+    def _normalize_image_size_for_model(
+        self, image_size: str | None
+    ) -> tuple[str | None, bool]:
+        """Validate image_size for the configured model.
+
+        Returns the size to forward to the API along with a flag indicating
+        whether the request fell back to the model default resolution.
+        """
+
+        if image_size is None:
+            return None, False
+
+        normalized = image_size.upper()
+        if normalized not in VALID_IMAGE_SIZES:
+            raise ValueError(f"Invalid image_size: {image_size}. Must be one of {VALID_IMAGE_SIZES}")
+
+        if "imagen" not in self.model_name.lower():
+            # Gemini models only expose the default 1K resolution today.
+            if normalized == "1K":
+                return None, True
+
+            raise ValueError(
+                f"image_size '{normalized}' is not supported on {self.model_name}. "
+                "Imagen models are required for custom resolutions."
+            )
+
+        return normalized, False
+
+    def _media_resolution_from_size(self, image_size: str) -> types.MediaResolution:
+        """Map user friendly image_size strings to MediaResolution enums."""
+
+        mapping: dict[str, types.MediaResolution] = {
+            "1K": types.MediaResolution.MEDIA_RESOLUTION_MEDIUM,
+            "2K": types.MediaResolution.MEDIA_RESOLUTION_HIGH,
+        }
+
+        try:
+            return mapping[image_size]
+        except KeyError as exc:  # pragma: no cover - defensive programming
+            raise ValueError(f"Unsupported image_size '{image_size}' for media resolution mapping") from exc
 
     async def _build_content_with_labels(
         self, prompt: str, input_images: list[ImageSource] | None
@@ -604,35 +675,23 @@ class GeminiImageGenerator:
             config_params["system_instruction"] = system_prompt
 
         # Add image generation parameters
-        # aspect_ratio goes in ImageConfig
+        image_config: dict[str, Any] = {}
         if aspect_ratio is not None:
-            config_params["image_config"] = types.ImageConfig(aspect_ratio=aspect_ratio)
+            image_config["aspect_ratio"] = aspect_ratio
 
-        # Note: number_of_images and image_size are NOT supported on gemini-2.5-flash-image
-        # They are only available on Imagen models (imagen-3, imagen-4)
-        # For Gemini models, you can only generate 1 image at a time per API call
-        if number_of_images > 1:
-            import warnings
+        normalized_image_size, _ = self._normalize_image_size_for_model(image_size)
 
-            warnings.warn(
-                f"number_of_images parameter ({number_of_images}) is not supported on {self.model_name}. "
-                "It's only available on Imagen models. "
-                "The model will generate 1 image per API call. "
-                "To generate multiple images, make multiple API calls.",
-                UserWarning,
-                stacklevel=2,
+        if image_config:
+            config_params["image_config"] = types.ImageConfig(**image_config)
+
+        if normalized_image_size is not None:
+            config_params["media_resolution"] = self._media_resolution_from_size(
+                normalized_image_size
             )
 
-        if image_size is not None:
-            import warnings
-
-            warnings.warn(
-                f"image_size parameter ({image_size}) is not supported on {self.model_name}. "
-                "It's only available on Imagen models (imagen-3, imagen-4). "
-                "This parameter will be ignored.",
-                UserWarning,
-                stacklevel=2,
-            )
+        candidate_count = self._coerce_candidate_count(number_of_images)
+        if candidate_count > 1:
+            config_params["candidate_count"] = candidate_count
 
         config = types.GenerateContentConfig(**config_params)
 
@@ -718,6 +777,21 @@ class GeminiImageGenerator:
         self, result: GenerationResult, output_specs: list[tuple[str | None, Union[str, Path]]]
     ) -> None:
         """Save generated images and log to LangSmith."""
+        # Ensure we have an image to pair with every requested output location
+        output_count = len(output_specs)
+
+        if len(result.images) < output_count:
+            # Duplicate the final generated image to cover the remaining outputs.
+            last_image = result.images[-1]
+            duplicates = output_count - len(result.images)
+            result.images.extend([last_image] * duplicates)
+            result.image_labels.extend([None] * duplicates)
+
+        if len(result.image_labels) < len(result.images):
+            result.image_labels.extend([None] * (len(result.images) - len(result.image_labels)))
+
+        images_for_outputs = result.images[:output_count]
+
         # Prepare save tasks for parallel execution
         save_tasks = [
             save_image(
@@ -727,7 +801,7 @@ class GeminiImageGenerator:
                 access_key_id=self.aws_access_key_id,
                 secret_access_key=self.aws_secret_access_key,
             )
-            for img, (label, location) in zip(result.images, output_specs, strict=False)
+            for img, (label, location) in zip(images_for_outputs, output_specs, strict=False)
         ]
 
         # Save all images in parallel using asyncio.gather
