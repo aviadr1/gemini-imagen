@@ -321,6 +321,8 @@ class TestAspectRatioAndResolution:
     @pytest.mark.asyncio
     async def test_preset_aspect_ratios(self):
         """Test image generation with preset aspect ratios."""
+        import asyncio
+
         from gemini_imagen import GeminiImageGenerator
 
         generator = GeminiImageGenerator(log_images=False)
@@ -333,27 +335,42 @@ class TestAspectRatioAndResolution:
         ]
 
         for aspect_ratio, expected_ratio in test_ratios:
-            result = await generator.generate(
-                prompt="A simple geometric shape",
-                aspect_ratio=aspect_ratio,
-                output_images=[f"test_aspect_{aspect_ratio.replace(':', 'x')}.png"],
-            )
+            # Retry up to 3 times to handle transient API failures
+            max_retries = 3
 
-            assert result.image is not None
-            # Check actual aspect ratio matches expected (with tolerance)
-            actual_ratio = result.image.size[0] / result.image.size[1]
-            assert (
-                abs(actual_ratio - expected_ratio) < 0.1
-            ), f"Aspect ratio mismatch for {aspect_ratio}: expected ~{expected_ratio:.2f}, got {actual_ratio:.2f} ({result.image.size[0]}x{result.image.size[1]})"
+            for attempt in range(max_retries):
+                try:
+                    result = await generator.generate(
+                        prompt="A simple geometric shape",
+                        aspect_ratio=aspect_ratio,
+                        output_images=[f"test_aspect_{aspect_ratio.replace(':', 'x')}.png"],
+                    )
 
-            # Cleanup
-            from pathlib import Path
+                    assert result.image is not None
+                    # Check actual aspect ratio matches expected (with tolerance)
+                    actual_ratio = result.image.size[0] / result.image.size[1]
+                    assert (
+                        abs(actual_ratio - expected_ratio) < 0.1
+                    ), f"Aspect ratio mismatch for {aspect_ratio}: expected ~{expected_ratio:.2f}, got {actual_ratio:.2f} ({result.image.size[0]}x{result.image.size[1]})"
 
-            Path(f"test_aspect_{aspect_ratio.replace(':', 'x')}.png").unlink(missing_ok=True)
+                    # Cleanup
+                    from pathlib import Path
 
-            print(
-                f"\n✅ Aspect ratio {aspect_ratio} test passed: {result.image.size[0]}x{result.image.size[1]}"
-            )
+                    Path(f"test_aspect_{aspect_ratio.replace(':', 'x')}.png").unlink(
+                        missing_ok=True
+                    )
+
+                    print(
+                        f"\n✅ Aspect ratio {aspect_ratio} test passed: {result.image.size[0]}x{result.image.size[1]}"
+                    )
+                    break  # Success, exit retry loop
+
+                except ValueError as e:
+                    if "No content parts in response" in str(e) and attempt < max_retries - 1:
+                        print(f"\n⚠️  Attempt {attempt + 1} failed for {aspect_ratio}, retrying...")
+                        await asyncio.sleep(2)  # Wait before retry
+                        continue
+                    raise  # Re-raise if not retryable or last attempt
 
     @pytest.mark.asyncio
     async def test_custom_aspect_ratio(self):
