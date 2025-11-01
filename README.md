@@ -290,45 +290,12 @@ class GenerationResult:
     def image_http_url(self) -> Optional[str]
 ```
 
-## Structured Output
+## Structured Output Limitation
 
 ⚠️ **The image model (`gemini-2.5-flash-image`) does not support JSON schemas or structured output.**
 
-For structured output, use a two-step approach:
-
-```python
-# Step 1: Generate or analyze image
-from gemini_imagen import GeminiImageGenerator
-
-generator = GeminiImageGenerator()
-result = generator.generate(
-    prompt="Analyze this image in detail",
-    input_images=["image.png"],
-    output_text=True
-)
-
-# Step 2: Get structured output with gemini-2.5-flash
-from google import genai
-from google.genai import types
-from pydantic import BaseModel
-
-class ImageAnalysis(BaseModel):
-    objects: list[str]
-    colors: list[str]
-    mood: str
-
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=f"{result.text}\\n\\nFormat as JSON with fields: objects, colors, mood",
-    config=types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=ImageAnalysis.model_json_schema()
-    )
-)
-
-analysis = ImageAnalysis.model_validate_json(response.text)
-```
+Any request for JSON or other structured responses will result in plain text
+output from `gemini-2.5-flash-image`.
 
 ## Configuration
 
