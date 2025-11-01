@@ -68,7 +68,12 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, test]
+    if: >-
+      (github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) ||
+      (github.event_name == 'pull_request' &&
+        (github.base_ref == 'main' || github.base_ref == 'develop'))
 
     steps:
       - uses: actions/checkout@v5
