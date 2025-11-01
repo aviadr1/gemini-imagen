@@ -134,6 +134,18 @@ def test_gemini_generator_falls_back_to_standard_aws_env(
     assert generator.aws_storage_bucket_name == "aws-bucket"
 
 
+def test_gemini_generator_requires_api_key(
+    mock_gemini_client, _clear_env
+) -> None:
+    """Initialization should fail when no API key can be resolved."""
+
+    with pytest.raises(ValueError) as exc_info:
+        GeminiImageGenerator()
+
+    mock_gemini_client.assert_not_called()
+    assert "No API key found" in str(exc_info.value)
+
+
 def test_get_default_bucket_prefers_argument(_clear_env, monkeypatch: pytest.MonkeyPatch) -> None:
     """Explicit bucket argument should override any environment configuration."""
 
@@ -161,6 +173,15 @@ def test_get_default_bucket_falls_back_to_standard_env(
     assert s3_utils.get_default_bucket() == "aws-bucket"
 
 
+def test_get_default_bucket_missing_env_raises(_clear_env) -> None:
+    """An informative error should be raised when no bucket can be located."""
+
+    with pytest.raises(ValueError) as exc_info:
+        s3_utils.get_default_bucket()
+
+    assert "Default S3 bucket not configured" in str(exc_info.value)
+
+
 def test_get_aws_credentials_prefers_parameters(
     _clear_env, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -172,6 +193,19 @@ def test_get_aws_credentials_prefers_parameters(
 
     assert access == "param-access"
     assert secret == "param-secret"
+
+
+def test_get_aws_credentials_missing_env_raises(
+    _clear_env, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Missing credentials should raise a ValueError to highlight configuration issues."""
+
+    monkeypatch.setattr(s3_utils, "HAS_AIOBOTOCORE", True)
+
+    with pytest.raises(ValueError) as exc_info:
+        s3_utils._get_aws_credentials()
+
+    assert "AWS credentials not found" in str(exc_info.value)
 
 
 def test_get_aws_credentials_env_priority(_clear_env, monkeypatch: pytest.MonkeyPatch) -> None:
