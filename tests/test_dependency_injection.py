@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+import collections.abc
+from typing import TYPE_CHECKING
 
 import pytest
 
-from gemini_imagen import GeminiImageGenerator
-from gemini_imagen import s3_utils
+from gemini_imagen import GeminiImageGenerator, s3_utils
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+else:
+    Iterable = collections.abc.Iterable
 
 
 @pytest.fixture
