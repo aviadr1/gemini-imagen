@@ -1,11 +1,18 @@
 """Pytest configuration and fixtures."""
 
 import os
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from dotenv import load_dotenv
 from PIL import Image
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = PROJECT_ROOT / "src"
+if str(SRC_PATH) not in sys.path:  # pragma: no cover - initialization
+    sys.path.insert(0, str(SRC_PATH))
 
 # Load environment variables for tests
 load_dotenv()
