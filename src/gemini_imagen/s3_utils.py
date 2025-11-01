@@ -370,8 +370,14 @@ async def load_image(
     if not local_path.exists():
         raise FileNotFoundError(f"File not found: {local_path}")
 
+    def _load_and_copy_image(path: Path) -> Image.Image:
+        """Load image and return a copy to avoid keeping file handle open."""
+        with Image.open(path) as img:
+            # Copy the image to avoid keeping the file handle open
+            return img.copy()
+
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, Image.open, local_path)
+    return await loop.run_in_executor(None, _load_and_copy_image, local_path)
 
 
 async def save_image(

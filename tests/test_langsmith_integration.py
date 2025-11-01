@@ -78,6 +78,8 @@ class TestLangSmithIntegration:
         mock_part = MagicMock()
         mock_part.inline_data.mime_type = "image/png"
         mock_part.inline_data.data = b"fake_image_data"
+        # Set text to None to avoid Pydantic serialization warnings
+        mock_part.text = None
         mock_response.candidates[0].content.parts = [mock_part]
 
         with patch("PIL.Image.open") as mock_image_open:

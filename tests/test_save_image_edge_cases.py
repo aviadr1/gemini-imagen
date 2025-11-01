@@ -53,8 +53,8 @@ class TestSaveImageEdgeCases:
             assert output_path.exists()
 
             # Verify the image can be opened
-            loaded = Image.open(output_path)
-            assert loaded.size == sample_image.size
+            with Image.open(output_path) as loaded:
+                assert loaded.size == sample_image.size
 
     @pytest.mark.asyncio
     async def test_save_image_creates_parent_directories(self, sample_image, tmp_path):
