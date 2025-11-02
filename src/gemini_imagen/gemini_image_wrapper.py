@@ -665,38 +665,17 @@ class GeminiImageGenerator:
         """
         Extract safety information from response for logging.
 
-        Uses actual SDK objects (not mapped strings) for better type safety and
-        forward compatibility. LangSmith will serialize enums/objects automatically.
+        Stores actual SDK objects directly. LangSmith will serialize them automatically.
         """
         safety_info: dict[str, Any] = {}
 
-        # Check prompt feedback - use actual SDK objects
-        if response.prompt_feedback:
-            if response.prompt_feedback.block_reason:
-                safety_info["prompt_blocked"] = True
-                # Store actual BlockedReason enum
-                safety_info["prompt_block_reason"] = response.prompt_feedback.block_reason
-                if response.prompt_feedback.block_reason_message:
-                    safety_info["prompt_block_message"] = (
-                        response.prompt_feedback.block_reason_message
-                    )
+        # Store entire prompt_feedback object if present
+        if response.prompt_feedback is not None:
+            safety_info["prompt_feedback"] = response.prompt_feedback
 
-            # Store actual SafetyRating list (not mapped)
-            if response.prompt_feedback.safety_ratings:
-                safety_info["prompt_safety_ratings"] = response.prompt_feedback.safety_ratings
-
-        # Check candidate feedback - use actual SDK objects
-        if candidate:
-            # Store actual FinishReason enum
-            if candidate.finish_reason:
-                safety_info["finish_reason"] = candidate.finish_reason
-
-            if candidate.finish_message:
-                safety_info["finish_message"] = candidate.finish_message
-
-            # Store actual SafetyRating list (not mapped)
-            if candidate.safety_ratings:
-                safety_info["candidate_safety_ratings"] = candidate.safety_ratings
+        # Store entire candidate object if present
+        if candidate is not None:
+            safety_info["candidate"] = candidate
 
         return safety_info
 
@@ -734,16 +713,14 @@ class GeminiImageGenerator:
 
             # Create detailed error message
             error_msg = "No candidates in response"
-            if safety_info:
-                if "prompt_blocked" in safety_info:
-                    block_reason = safety_info.get(
-                        "prompt_block_reason", types.BlockedReason.BLOCKED_REASON_UNSPECIFIED
-                    )
-                    error_msg += f". Prompt was blocked: {block_reason}"
-                    if "prompt_block_message" in safety_info:
-                        error_msg += f" - {safety_info['prompt_block_message']}"
-                if "prompt_safety_ratings" in safety_info:
-                    error_msg += f". Safety ratings: {safety_info['prompt_safety_ratings']}"
+            if "prompt_feedback" in safety_info:
+                prompt_feedback = safety_info["prompt_feedback"]
+                if prompt_feedback.block_reason:
+                    error_msg += f". Prompt was blocked: {prompt_feedback.block_reason}"
+                    if prompt_feedback.block_reason_message:
+                        error_msg += f" - {prompt_feedback.block_reason_message}"
+                if prompt_feedback.safety_ratings:
+                    error_msg += f". Safety ratings: {prompt_feedback.safety_ratings}"
 
             error_msg += f"\n\nFull response:\n{response_json}"
             raise ValueError(error_msg)
@@ -764,13 +741,14 @@ class GeminiImageGenerator:
 
             # Create detailed error message
             error_msg = "No content parts in response"
-            if safety_info:
-                if "finish_reason" in safety_info:
-                    error_msg += f". Finish reason: {safety_info['finish_reason']}"
-                if "finish_message" in safety_info:
-                    error_msg += f" - {safety_info['finish_message']}"
-                if "candidate_safety_ratings" in safety_info:
-                    error_msg += f". Safety ratings: {safety_info['candidate_safety_ratings']}"
+            if "candidate" in safety_info:
+                candidate_info = safety_info["candidate"]
+                if candidate_info.finish_reason:
+                    error_msg += f". Finish reason: {candidate_info.finish_reason}"
+                if candidate_info.finish_message:
+                    error_msg += f" - {candidate_info.finish_message}"
+                if candidate_info.safety_ratings:
+                    error_msg += f". Safety ratings: {candidate_info.safety_ratings}"
 
             error_msg += f"\n\nFull response:\n{response_json}"
             raise ValueError(error_msg)
