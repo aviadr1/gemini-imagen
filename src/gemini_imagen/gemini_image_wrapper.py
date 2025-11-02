@@ -811,6 +811,10 @@ class GeminiImageGenerator:
                     result.images.append(img)
                     result.image_labels.append(None)  # No label from response
 
+        # Log successful response metadata to LangSmith
+        safety_info = self._format_safety_info(response, candidate)
+        self._log_response_to_langsmith(response, safety_info)
+
         return result
 
     def _has_image_data(self, part: Any) -> bool:
