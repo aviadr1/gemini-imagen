@@ -572,6 +572,7 @@ class TestSafetyFiltering:
 
             # Verify we get a finish_reason that indicates blocking
             # Use actual FinishReason enum values (not string literals)
+            # Note: BlockedReason also has JAILBREAK but it's a different enum
             blocking_reasons = [
                 types.FinishReason.NO_IMAGE,
                 types.FinishReason.IMAGE_SAFETY,

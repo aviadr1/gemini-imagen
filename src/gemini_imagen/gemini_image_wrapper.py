@@ -736,9 +736,10 @@ class GeminiImageGenerator:
             error_msg = "No candidates in response"
             if safety_info:
                 if "prompt_blocked" in safety_info:
-                    error_msg += (
-                        f". Prompt was blocked: {safety_info.get('prompt_block_reason', 'UNKNOWN')}"
+                    block_reason = safety_info.get(
+                        "prompt_block_reason", types.BlockedReason.BLOCKED_REASON_UNSPECIFIED
                     )
+                    error_msg += f". Prompt was blocked: {block_reason}"
                     if "prompt_block_message" in safety_info:
                         error_msg += f" - {safety_info['prompt_block_message']}"
                 if "prompt_safety_ratings" in safety_info:
@@ -792,16 +793,15 @@ class GeminiImageGenerator:
     def _has_image_data(self, part: Any) -> bool:
         """Check if a response part contains image data."""
         return (
-            hasattr(part, "inline_data")
-            and part.inline_data is not None
-            and hasattr(part.inline_data, "data")
-            and part.inline_data.data
+            part.inline_data is not None
+            and part.inline_data.data is not None
+            and len(part.inline_data.data) > 0
         )
 
     def _extract_image_from_part(self, part: Any) -> Image.Image | None:
         """Extract PIL Image from a response part."""
         try:
-            if not hasattr(part, "inline_data") or not part.inline_data:
+            if part.inline_data is None or part.inline_data.data is None:
                 return None
 
             image_data: bytes = part.inline_data.data
