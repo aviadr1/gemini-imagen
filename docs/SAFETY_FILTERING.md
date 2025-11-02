@@ -130,14 +130,109 @@ except ValueError as e:
     print(f"Error details: {error_msg}")
 ```
 
+## Configuring Safety Settings
+
+You can customize safety filtering thresholds to control which content is blocked. This is useful when you need more or less restrictive filtering for your use case.
+
+### Available Safety Categories
+
+- `HARM_CATEGORY_SEXUALLY_EXPLICIT` - Sexually explicit content
+- `HARM_CATEGORY_DANGEROUS_CONTENT` - Violent or dangerous content
+- `HARM_CATEGORY_HARASSMENT` - Harassment
+- `HARM_CATEGORY_HATE_SPEECH` - Hate speech
+- `HARM_CATEGORY_CIVIC_INTEGRITY` - Civic integrity violations
+
+### Safety Thresholds
+
+- `BLOCK_NONE` - Disable blocking for this category
+- `BLOCK_ONLY_HIGH` - Relaxed, only block high-probability harmful content
+- `BLOCK_MEDIUM_AND_ABOVE` - Default, block medium and high probability
+- `BLOCK_LOW_AND_ABOVE` - Strict, block low, medium, and high probability
+
+### Example: Relaxed Settings
+
+```python
+from gemini_imagen import GeminiImageGenerator, SafetySetting, HarmCategory, HarmBlockThreshold
+
+generator = GeminiImageGenerator(log_images=True)
+
+# Configure relaxed settings for artistic content
+relaxed_settings = [
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=HarmBlockThreshold.BLOCK_ONLY_HIGH
+    )
+]
+
+try:
+    result = await generator.generate(
+        prompt="A tasteful artistic nude statue, black and white photograph",
+        output_images=["output.png"],
+        safety_settings=relaxed_settings
+    )
+except ValueError as e:
+    print(f"Content blocked: {e}")
+```
+
+### Example: Strict Settings
+
+```python
+from gemini_imagen import GeminiImageGenerator, SafetySetting, HarmCategory, HarmBlockThreshold
+
+generator = GeminiImageGenerator(log_images=True)
+
+# Configure strict settings for family-friendly content
+strict_settings = [
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE
+    ),
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE
+    )
+]
+
+result = await generator.generate(
+    prompt="A peaceful mountain landscape",
+    output_images=["output.png"],
+    safety_settings=strict_settings
+)
+```
+
+### Default Behavior
+
+When `safety_settings=None` (the default), Gemini uses its built-in default thresholds.
+
+To have precise control over safety filtering, explicitly configure thresholds:
+- Use `BLOCK_LOW_AND_ABOVE` for strict, family-friendly filtering
+- Use `BLOCK_ONLY_HIGH` for relaxed, artistic content filtering
+
+### Important Notes
+
+1. **Safety settings are optional**: Omit `safety_settings` to use Gemini's defaults
+2. **Per-category configuration**: You can set different thresholds for different categories
+3. **Model behavior may vary**: Even with relaxed settings, the model may still block content based on its internal policies
+4. **Cannot completely disable safety**: `BLOCK_NONE` reduces blocking but doesn't guarantee all content will be allowed
+
 ## Testing Safety Filtering
 
-See `tests/test_e2e_integration.py::TestSafetyFiltering` for integration tests.
+See integration tests:
+- `tests/test_e2e_integration.py::TestSafetyFiltering` - Tests for safety blocking behavior
+- `tests/test_e2e_integration.py::TestSafetySettings` - Tests for configurable safety settings
 
 Example prompts that trigger blocking:
 - "nude picture of [person]" → `NO_IMAGE` or `IMAGE_SAFETY`
 - "explicit sexual content" → `NO_IMAGE`
 - "violent gore scene" → `NO_IMAGE`
+
+The `TestSafetySettings` tests demonstrate:
+- Relaxed settings (`BLOCK_ONLY_HIGH`) with borderline content
+- Strict settings (`BLOCK_LOW_AND_ABOVE`) blocking borderline content
+- Default settings behavior (`None`)
+- Configuring multiple safety categories with different thresholds
+
+The tests use carefully crafted borderline prompts to validate threshold differences.
 
 ## SDK Type Reference
 

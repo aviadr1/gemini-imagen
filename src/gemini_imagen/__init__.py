@@ -37,8 +37,11 @@ Example:
 from .gemini_image_wrapper import (
     GeminiImageGenerator,
     GenerationResult,
+    HarmBlockThreshold,
+    HarmCategory,
     ImageType,
     ResponseModality,
+    SafetySetting,
 )
 from .s3_utils import (
     download_from_http,
@@ -54,19 +57,19 @@ from .s3_utils import (
 )
 
 __all__ = [
-    # Main API
     "GeminiImageGenerator",
     "GenerationResult",
+    "HarmBlockThreshold",
+    "HarmCategory",
     "ImageType",
-    # Enums
     "ResponseModality",
+    "SafetySetting",
     "download_from_http",
     "download_from_s3",
     "get_default_bucket",
     "get_http_url",
     "is_http_url",
     "is_s3_uri",
-    # Image utilities
     "load_image",
     "parse_s3_uri",
     "save_image",

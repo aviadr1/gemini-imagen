@@ -69,6 +69,12 @@ class ResponseModality(str, Enum):
     TEXT = "TEXT"
 
 
+# Safety settings - re-export from google.genai.types for convenience
+SafetySetting = types.SafetySetting
+HarmCategory = types.HarmCategory
+HarmBlockThreshold = types.HarmBlockThreshold
+
+
 # Constants for image generation
 PRESET_ASPECT_RATIOS = {
     "1:1",  # Square (default, 1024x1024)
@@ -330,6 +336,8 @@ class GeminiImageGenerator:
         temperature: float | None = None,
         # Image generation configuration
         aspect_ratio: str | tuple[int, int] | None = None,
+        # Safety configuration
+        safety_settings: list[types.SafetySetting] | None = None,
         # Output configuration
         output_images: list[OutputImageSpec] | OutputImageSpec | None = None,
         output_text: bool = False,
@@ -370,6 +378,19 @@ class GeminiImageGenerator:
                 - Preset string: "1:1" (default), "3:4", "4:3", "9:16", "16:9"
                 - Custom tuple: (16, 10) for any custom aspect ratio
                 - None: Uses default (1:1 square, 1024x1024)
+
+            safety_settings: Optional list of SafetySetting objects to control content filtering
+                - None: Use Gemini's default safety settings (BLOCK_MEDIUM_AND_ABOVE)
+                - List of SafetySetting(category=HarmCategory.X, threshold=HarmBlockThreshold.Y)
+                - Available categories: HARM_CATEGORY_SEXUALLY_EXPLICIT, HARM_CATEGORY_HARASSMENT,
+                  HARM_CATEGORY_HATE_SPEECH, HARM_CATEGORY_DANGEROUS_CONTENT, etc.
+                - Available thresholds:
+                  * BLOCK_NONE: Disable blocking for this category
+                  * BLOCK_ONLY_HIGH: Relaxed, block only high-probability harmful content
+                  * BLOCK_MEDIUM_AND_ABOVE: Default, block medium and high
+                  * BLOCK_LOW_AND_ABOVE: Strict, block low, medium, and high
+                - Example: [SafetySetting(category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                           threshold=HarmBlockThreshold.BLOCK_ONLY_HIGH)]
 
             output_images: Where to save generated image(s)
                 - Single: str/Path or ("label", str/Path)
@@ -457,6 +478,7 @@ class GeminiImageGenerator:
             temperature=temperature,
             modalities=modalities,
             aspect_ratio=normalized_aspect_ratio,
+            safety_settings=safety_settings,
         )
 
         # Extract and process results
@@ -618,6 +640,7 @@ class GeminiImageGenerator:
         temperature: float | None,
         modalities: list[str],
         aspect_ratio: str | None = None,
+        safety_settings: list[types.SafetySetting] | None = None,
     ) -> types.GenerateContentResponse:
         """Call Gemini API and return response."""
         import asyncio
@@ -633,6 +656,10 @@ class GeminiImageGenerator:
         # Add system instruction if specified
         if system_prompt is not None:
             config_params["system_instruction"] = system_prompt
+
+        # Add safety settings if specified
+        if safety_settings is not None:
+            config_params["safety_settings"] = safety_settings
 
         # Add image generation parameters
         # Build ImageConfig with available parameters
