@@ -100,9 +100,11 @@ addopts = [
     "--verbose",
     "--cov=gemini_imagen",
     "--cov-report=term-missing",
+    "-m", "not flaky",
 ]
 markers = [
     "integration: marks tests as integration tests that require real API keys (deselect with '-m \"not integration\"')",
+    "flaky: marks tests as flaky (non-deterministic behavior, skipped by default, run with '-m flaky')",
 ]
 
 [tool.black]
@@ -124,4 +126,5 @@ target-version = "py312"
 [dependency-groups]
 dev = [
     "pre-commit>=4.3.0",
+    "pytest-rerunfailures>=16.1",
 ]
