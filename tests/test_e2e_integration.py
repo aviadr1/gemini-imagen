@@ -466,90 +466,61 @@ class TestAspectRatioAndResolution:
 
 
 @requires_google_api_key()
-class TestImagenModels:
-    """Integration tests for Imagen models (imagen-3, imagen-4) with advanced features."""
+class TestModelDiscovery:
+    """Test model discovery functionality."""
 
     @pytest.mark.asyncio
-    async def test_imagen_advanced_features(self):
-        """Test Imagen model with image_size and multiple images (advanced features)."""
+    async def test_list_available_models(self):
+        """Test listing available models and check for Imagen support."""
         from gemini_imagen import GeminiImageGenerator
 
-        # Initialize with Imagen model
-        generator = GeminiImageGenerator(model_name="imagen-3.0-generate-001", log_images=False)
+        # List all models
+        models = GeminiImageGenerator.list_models()
 
-        # Test 1: High resolution with image_size parameter
-        print("\n🎨 Testing Imagen model with 2K resolution...")
-        result_2k = await generator.generate(
-            prompt="A detailed landscape with mountains",
-            aspect_ratio="16:9",
-            image_size="2K",  # Only supported on Imagen models
-            output_images=["test_imagen_2k.png"],
-        )
+        assert len(models) > 0, "Should return at least some models"
 
-        assert result_2k.image is not None
-        width, height = result_2k.image.size
-        total_pixels = width * height
+        # Categorize models
+        imagen_models = [
+            m
+            for m in models
+            if "imagen" in m["name"].lower() or "imagegeneration" in m["name"].lower()
+        ]
+        gemini_image_models = [
+            m
+            for m in models
+            if "flash-image" in m["name"].lower() or "flash_image" in m["name"].lower()
+        ]
 
-        # 2K should have significantly more pixels than 1K
-        # Rough expectation: 2K ≈ 2048x1152 = 2,359,296 pixels for 16:9
-        assert total_pixels > 1_500_000, f"2K image should have >1.5M pixels, got {total_pixels:,}"
+        # Display results
+        print("\n" + "=" * 80)
+        print("📋 AVAILABLE MODELS IN GOOGLE AI API")
+        print("=" * 80)
 
-        print(f"  ✓ 2K image: {width}x{height} ({total_pixels:,} pixels)")
+        print("\n🎨 IMAGEN MODELS:")
+        print("-" * 80)
+        if imagen_models:
+            for m in imagen_models:
+                print(f"\n  ✨ {m['name']}")
+                print(f"     Display: {m['display_name']}")
+                print(f"     Methods: {', '.join(m['methods'])}")
+        else:
+            print("  ❌ No Imagen models found!")
+            print("  💡 Imagen models are likely only available via Vertex AI")
 
-        # Test 2: Multiple different images in one call
-        print("\n🎨 Testing Imagen model with multiple images...")
-        result_multi = await generator.generate(
-            prompt="Abstract art with vibrant colors",
-            aspect_ratio="1:1",
-            output_images=[
-                ("Variation 1", "test_imagen_var1.png"),
-                ("Variation 2", "test_imagen_var2.png"),
-                ("Variation 3", "test_imagen_var3.png"),
-            ],
-        )
+        print("\n\n🖼️  GEMINI IMAGE MODELS:")
+        print("-" * 80)
+        for m in gemini_image_models:
+            print(f"\n  ✨ {m['name']}")
+            print(f"     Display: {m['display_name']}")
+            print(f"     Methods: {', '.join(m['methods'])}")
 
-        # Imagen models can generate multiple different images
-        # Note: This assumes the API actually returns multiple images
-        # If it only returns 1, the code will duplicate it to all outputs
-        assert len(result_multi.images) >= 1
-        assert len(result_multi.image_labels) == 3
-        assert result_multi.image_labels[0] == "Variation 1"
+        print("\n" + "=" * 80)
+        print(f"SUMMARY: {len(imagen_models)} Imagen, {len(gemini_image_models)} Gemini Image")
+        print("=" * 80 + "\n")
 
-        print(
-            f"  ✓ Generated {len(result_multi.images)} image(s) with "
-            f"{len(result_multi.image_labels)} labels"
-        )
+        # Assertions
+        assert len(gemini_image_models) > 0, "Should have at least one Gemini image model"
 
-        # Test 3: Combined features (2K + multiple images)
-        print("\n🎨 Testing combined features (2K + multiple images)...")
-        result_combined = await generator.generate(
-            prompt="A futuristic cityscape",
-            aspect_ratio="16:9",
-            image_size="2K",
-            output_images=[
-                ("City View 1", "test_imagen_combined1.png"),
-                ("City View 2", "test_imagen_combined2.png"),
-            ],
-        )
-
-        assert len(result_combined.images) >= 1
-        assert len(result_combined.image_labels) == 2
-
-        # Verify high resolution
-        width, height = result_combined.images[0].size
-        total_pixels = width * height
-        assert total_pixels > 1_500_000, f"2K image should have >1.5M pixels, got {total_pixels:,}"
-
-        print(f"  ✓ Combined: {width}x{height}, {len(result_combined.images)} image(s)")
-
-        print("\n✅ All Imagen advanced features tests passed!")
-
-        # Cleanup
-        from pathlib import Path
-
-        Path("test_imagen_2k.png").unlink(missing_ok=True)
-        Path("test_imagen_var1.png").unlink(missing_ok=True)
-        Path("test_imagen_var2.png").unlink(missing_ok=True)
-        Path("test_imagen_var3.png").unlink(missing_ok=True)
-        Path("test_imagen_combined1.png").unlink(missing_ok=True)
-        Path("test_imagen_combined2.png").unlink(missing_ok=True)
+        # Check if any model supports generateContent
+        generate_content_models = [m for m in models if "generateContent" in m["methods"]]
+        assert len(generate_content_models) > 0, "Should have models supporting generateContent"

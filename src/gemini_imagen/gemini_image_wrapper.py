@@ -78,8 +78,6 @@ PRESET_ASPECT_RATIOS = {
     "16:9",  # Widescreen
 }
 
-VALID_IMAGE_SIZES = {"1K", "2K"}  # 2K only supported on Standard/Ultra models
-
 
 def _normalize_aspect_ratio(aspect_ratio: str | tuple[int, int] | None) -> str | None:
     """
@@ -274,9 +272,50 @@ class GeminiImageGenerator:
         )
         self.aws_region = aws_region
 
-    def _is_imagen_model(self) -> bool:
-        """Check if the current model is an Imagen model (supports advanced features)."""
-        return "imagen" in self.model_name.lower()
+    @staticmethod
+    def list_models(api_key: str | None = None) -> list[dict[str, Any]]:
+        """
+        List all available models from Google AI API.
+
+        Args:
+            api_key: Google API key. If None, uses GOOGLE_API_KEY or GEMINI_API_KEY env var.
+
+        Returns:
+            List of model dictionaries with keys: name, display_name, methods, description
+
+        Example:
+            >>> models = GeminiImageGenerator.list_models()
+            >>> for model in models:
+            ...     print(f"{model['name']}: {model['methods']}")
+        """
+        import os
+
+        if api_key is None:
+            api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "API key required. Set GOOGLE_API_KEY environment variable or pass api_key parameter."
+                )
+
+        client = genai.Client(api_key=api_key)
+
+        models = []
+        for model in client.models.list():
+            # Get supported methods (attribute name may vary)
+            methods = getattr(model, "supported_generation_methods", None)
+            if methods is None:
+                methods = getattr(model, "supported_actions", [])
+
+            models.append(
+                {
+                    "name": model.name,
+                    "display_name": model.display_name,
+                    "methods": methods,
+                    "description": model.description,
+                }
+            )
+
+        return models
 
     @traceable(
         name="generate",
@@ -291,7 +330,6 @@ class GeminiImageGenerator:
         temperature: float | None = None,
         # Image generation configuration
         aspect_ratio: str | tuple[int, int] | None = None,
-        image_size: str | None = None,
         # Output configuration
         output_images: list[OutputImageSpec] | OutputImageSpec | None = None,
         output_text: bool = False,
@@ -303,30 +341,22 @@ class GeminiImageGenerator:
         """
         Unified generation function with support for:
         - Labeled input images
-        - Multiple output images
+        - Multiple output images (duplicates - same image saved to multiple locations)
         - Flexible output combinations (image, text, or both)
         - Custom aspect ratios
 
-        Model-Specific Capabilities:
-        =============================
-
-        Gemini Models (gemini-2.5-flash-image):
-        ----------------------------------------
-        SUPPORTED:
+        Supported Features (gemini-2.5-flash-image):
+        ============================================
             ✓ aspect_ratio - Control image dimensions (1:1, 16:9, etc.)
             ✓ Multiple output_images - Saves same image to multiple locations
+            ✓ Labeled inputs - Reference input images by name in prompts
+            ✓ Image + text output - Generate both image and text description
+            ✓ S3 integration - Load from and save to S3
 
-        NOT SUPPORTED (will raise ValueError):
-            ✗ image_size - No 1K/2K resolution control (auto-determined)
-            ✗ Multiple different images - Only 1 image generated per call
-
-        Imagen Models (imagen-3, imagen-4):
-        ------------------------------------
-        SUPPORTED:
-            ✓ aspect_ratio - Control image dimensions (1:1, 16:9, etc.)
-            ✓ image_size - Resolution control (1K, 2K)
-            ✓ number_of_images - Generate multiple different images per call
-            ✓ Multiple output_images - Can generate truly different variations
+        Limitations:
+        ============
+            ✗ Resolution control - Resolution is auto-determined based on aspect ratio
+            ✗ Multiple variations - Only 1 image generated per call (can save to multiple locations)
 
         Args:
             prompt: User prompt text
@@ -336,22 +366,14 @@ class GeminiImageGenerator:
                 - Tuple of ("label", image) for labeled images
             temperature: Sampling temperature (0.0 to 1.0)
 
-            aspect_ratio: Image aspect ratio (supported on ALL models)
+            aspect_ratio: Image aspect ratio
                 - Preset string: "1:1" (default), "3:4", "4:3", "9:16", "16:9"
                 - Custom tuple: (16, 10) for any custom aspect ratio
-                - None: Uses default (1:1 square)
-
-            image_size: Image resolution (Imagen models only)
-                - Options: "1K" (default), "2K" (higher resolution)
-                - Only available on Imagen models (imagen-3, imagen-4)
-                - Raises ValueError if used with gemini-2.5-flash-image
-                - Gemini models use automatic resolution based on aspect ratio
+                - None: Uses default (1:1 square, 1024x1024)
 
             output_images: Where to save generated image(s)
                 - Single: str/Path or ("label", str/Path)
-                - Multiple: List of above formats
-                - Gemini models: Generates 1 image, saves to all locations (duplicates)
-                - Imagen models: Can generate multiple different images per call
+                - Multiple: List of above formats (same image saved to all locations)
             output_text: If True, request text output
 
             metadata: Additional metadata to log in LangSmith
@@ -417,36 +439,6 @@ class GeminiImageGenerator:
         # Validate and normalize aspect ratio
         normalized_aspect_ratio = _normalize_aspect_ratio(aspect_ratio)
 
-        # Validate image_size parameter
-        if image_size is not None:
-            if image_size not in VALID_IMAGE_SIZES:
-                raise ValueError(
-                    f"Invalid image_size: {image_size}. Must be one of {VALID_IMAGE_SIZES}"
-                )
-            # Check model support for image_size
-            if not self._is_imagen_model():
-                raise ValueError(
-                    f"image_size parameter is not supported on {self.model_name}. "
-                    "This parameter is only available on Imagen models (imagen-3, imagen-4). "
-                    "The gemini-2.5-flash-image model uses automatic resolution based on aspect ratio."
-                )
-
-        # Determine number of images to generate
-        # For Imagen models: can generate multiple images per call
-        # For Gemini models: can only generate 1 image per call (saves to multiple locations if needed)
-        if output_images is not None:
-            output_specs = self._parse_output_specs(output_images)
-            requested_count = len(output_specs) if output_specs else 1
-
-            if requested_count > 1 and not self._is_imagen_model():
-                # Gemini models can only generate 1 image, will duplicate to multiple outputs
-                number_of_images = 1
-            else:
-                # Imagen models can generate multiple different images
-                number_of_images = requested_count
-        else:
-            number_of_images = 1
-
         # Determine response modalities
         modalities = self._determine_response_modalities(
             output_images=output_images, output_text=output_text
@@ -465,8 +457,6 @@ class GeminiImageGenerator:
             temperature=temperature,
             modalities=modalities,
             aspect_ratio=normalized_aspect_ratio,
-            image_size=image_size,
-            number_of_images=number_of_images,
         )
 
         # Extract and process results
@@ -628,8 +618,6 @@ class GeminiImageGenerator:
         temperature: float | None,
         modalities: list[str],
         aspect_ratio: str | None = None,
-        image_size: str | None = None,
-        number_of_images: int = 1,
     ) -> types.GenerateContentResponse:
         """Call Gemini API and return response."""
         import asyncio
@@ -654,18 +642,9 @@ class GeminiImageGenerator:
         if aspect_ratio is not None:
             image_config_params["aspect_ratio"] = aspect_ratio
 
-        # For Imagen models, add additional parameters to ImageConfig
-        if self._is_imagen_model() and image_size is not None:
-            # Add image_size to ImageConfig for Imagen models
-            image_config_params["image_size"] = image_size
-
         # Create ImageConfig if we have any parameters
         if image_config_params:
             config_params["image_config"] = types.ImageConfig(**image_config_params)
-
-        # For Imagen models, add number_of_images to GenerateContentConfig
-        if self._is_imagen_model() and number_of_images > 1:
-            config_params["number_of_images"] = number_of_images
 
         config = types.GenerateContentConfig(**config_params)
 

@@ -9,8 +9,9 @@
 A comprehensive Python wrapper for Google Gemini's image generation and analysis capabilities, featuring:
 
 - 🎨 **Text-to-Image Generation** - Create images from text prompts
+- 📐 **Aspect Ratio Control** - Custom aspect ratios (16:9, 1:1, 9:16, etc.)
 - 🏷️ **Labeled Input Images** - Reference images by name in prompts for better control
-- 📸 **Multiple Output Images** - Generate multiple variations in one request
+- 📸 **Multiple Output Images** - Save same image to multiple locations
 - 💬 **Image Analysis** - Get detailed text descriptions of images
 - ☁️ **S3 Integration** - Seamless AWS S3 upload/download with URL logging
 - 📈 **LangSmith Tracing** - Full observability for debugging and monitoring
@@ -233,8 +234,8 @@ graph TB
 
 ```python
 generator = GeminiImageGenerator(
-    model_name="gemini-2.5-flash-image",  # Image generation model
-    api_key=None,                          # Auto-loads from env
+    model_name="gemini-2.5-flash-image",  # Image generation model (default)
+    api_key=None,                          # Auto-loads from GOOGLE_API_KEY env var
     log_images=True                        # Enable LangSmith logging
 )
 ```
@@ -247,6 +248,9 @@ result = generator.generate(
     system_prompt: Optional[str] = None,              # System instructions
     input_images: Optional[List[ImageSource]] = None, # Input images
     temperature: Optional[float] = None,              # Sampling temperature
+
+    # Image generation controls
+    aspect_ratio: Optional[Union[str, Tuple[int, int]]] = None,  # e.g., "16:9", (21, 9)
 
     # Output configuration
     output_images: Optional[List[OutputImageSpec]] = None,  # Generate images
