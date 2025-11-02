@@ -58,26 +58,30 @@ When content is blocked, the response includes:
 
 ## Finish Reason Values
 
-The `finish_reason` field uses the `types.FinishReason` enum from `google.genai`:
+The `finish_reason` field uses the `types.FinishReason` enum from `google.genai`.
 
-**Normal completion:**
+**All possible values** (from SDK `types.FinishReason`):
+- `FINISH_REASON_UNSPECIFIED` - Unspecified reason
 - `STOP` - Generation completed successfully
-
-**Safety-related blocking:**
-- `SAFETY` - Blocked for general safety reasons
-- `IMAGE_SAFETY` - Blocked for image-specific safety reasons
-- `NO_IMAGE` - No image could be generated (often safety-related)
-- `PROHIBITED_CONTENT` - Blocked for prohibited content
-- `IMAGE_PROHIBITED_CONTENT` - Blocked for image-specific prohibited content
-- `JAILBREAK` - Detected jailbreak attempt
-
-**Other blocking reasons:**
 - `MAX_TOKENS` - Hit token limit
+- `SAFETY` - Blocked for general safety reasons
 - `RECITATION` - Blocked for recitation
-- `BLOCKLIST` - Hit blocklist
-- `SPII` - Sensitive personal information detected
 - `LANGUAGE` - Language not supported
 - `OTHER` - Other unspecified reason
+- `BLOCKLIST` - Hit blocklist
+- `PROHIBITED_CONTENT` - Blocked for prohibited content
+- `SPII` - Sensitive personal information detected
+- `MALFORMED_FUNCTION_CALL` - Function call was malformed
+- `IMAGE_SAFETY` - Blocked for image-specific safety reasons
+- `UNEXPECTED_TOOL_CALL` - Unexpected tool call
+- `IMAGE_PROHIBITED_CONTENT` - Blocked for image-specific prohibited content
+- `NO_IMAGE` - No image could be generated
+
+**Common values for image generation:**
+- `STOP` - Successful generation
+- `NO_IMAGE` - No image generated (often safety-related)
+- `IMAGE_SAFETY` - Blocked for image safety
+- `IMAGE_PROHIBITED_CONTENT` - Blocked prohibited image content
 
 ## What gemini-imagen Logs
 
