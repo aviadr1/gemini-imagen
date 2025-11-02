@@ -659,21 +659,150 @@ class GeminiImageGenerator:
             ),
         )
 
+    def _format_safety_info(
+        self, response: types.GenerateContentResponse, candidate: types.Candidate | None = None
+    ) -> dict[str, Any]:
+        """Extract safety information from response for logging."""
+        safety_info: dict[str, Any] = {}
+
+        # Check prompt feedback
+        if response.prompt_feedback:
+            if response.prompt_feedback.block_reason:
+                safety_info["prompt_blocked"] = True
+                safety_info["prompt_block_reason"] = response.prompt_feedback.block_reason.name
+                if response.prompt_feedback.block_reason_message:
+                    safety_info["prompt_block_message"] = (
+                        response.prompt_feedback.block_reason_message
+                    )
+
+            # Log prompt safety ratings
+            if response.prompt_feedback.safety_ratings:
+                prompt_ratings: list[dict[str, Any]] = []
+                for rating in response.prompt_feedback.safety_ratings:
+                    rating_info: dict[str, Any] = {
+                        "category": rating.category.name if rating.category else "UNKNOWN"
+                    }
+                    if rating.probability:
+                        rating_info["probability"] = rating.probability.name
+                    if rating.probability_score is not None:
+                        rating_info["probability_score"] = rating.probability_score
+                    if rating.severity:
+                        rating_info["severity"] = rating.severity.name
+                    if rating.severity_score is not None:
+                        rating_info["severity_score"] = rating.severity_score
+                    if rating.blocked is not None:
+                        rating_info["blocked"] = rating.blocked
+                    prompt_ratings.append(rating_info)
+                safety_info["prompt_safety_ratings"] = prompt_ratings
+
+        # Check candidate feedback
+        if candidate:
+            if candidate.finish_reason:
+                safety_info["finish_reason"] = candidate.finish_reason.name
+
+            if candidate.finish_message:
+                safety_info["finish_message"] = candidate.finish_message
+
+            # Log candidate safety ratings
+            if candidate.safety_ratings:
+                candidate_ratings: list[dict[str, Any]] = []
+                for rating in candidate.safety_ratings:
+                    candidate_rating_info: dict[str, Any] = {
+                        "category": rating.category.name if rating.category else "UNKNOWN"
+                    }
+                    if rating.probability:
+                        candidate_rating_info["probability"] = rating.probability.name
+                    if rating.probability_score is not None:
+                        candidate_rating_info["probability_score"] = rating.probability_score
+                    if rating.severity:
+                        candidate_rating_info["severity"] = rating.severity.name
+                    if rating.severity_score is not None:
+                        candidate_rating_info["severity_score"] = rating.severity_score
+                    if rating.blocked is not None:
+                        candidate_rating_info["blocked"] = rating.blocked
+                    candidate_ratings.append(candidate_rating_info)
+                safety_info["candidate_safety_ratings"] = candidate_ratings
+
+        return safety_info
+
+    def _log_safety_info_to_langsmith(self, safety_info: dict[str, Any]) -> None:
+        """Log safety information to LangSmith."""
+        if not self.log_images or not safety_info:
+            return
+
+        try:
+            from langsmith import get_current_run_tree
+
+            run_tree = get_current_run_tree()
+            if run_tree and run_tree.outputs is not None:
+                # Log safety info to outputs
+                for key, value in safety_info.items():
+                    run_tree.outputs[f"safety_{key}"] = value
+
+        except Exception as e:
+            print(f"Warning: Could not log safety info to LangSmith: {e}")
+
     def _extract_response(self, response: types.GenerateContentResponse) -> GenerationResult:
         """Extract text and images from Gemini response."""
         result = GenerationResult(text=None, structured=None)
 
         if not response.candidates:
-            raise ValueError("No candidates in response")
+            # Check if prompt was blocked
+            safety_info = self._format_safety_info(response)
+            self._log_safety_info_to_langsmith(safety_info)
+
+            # Serialize response for debugging
+            import json
+
+            response_dict = response.model_dump(exclude_none=True)
+            response_json = json.dumps(response_dict, indent=2, default=str)
+
+            # Create detailed error message
+            error_msg = "No candidates in response"
+            if safety_info:
+                if "prompt_blocked" in safety_info:
+                    error_msg += (
+                        f". Prompt was blocked: {safety_info.get('prompt_block_reason', 'UNKNOWN')}"
+                    )
+                    if "prompt_block_message" in safety_info:
+                        error_msg += f" - {safety_info['prompt_block_message']}"
+                if "prompt_safety_ratings" in safety_info:
+                    error_msg += f". Safety ratings: {safety_info['prompt_safety_ratings']}"
+
+            error_msg += f"\n\nFull response:\n{response_json}"
+            raise ValueError(error_msg)
 
         candidate = response.candidates[0]
+
+        # Check if content was blocked or empty
         if not candidate.content or not candidate.content.parts:
-            raise ValueError("No content parts in response")
+            # Extract and log safety information
+            safety_info = self._format_safety_info(response, candidate)
+            self._log_safety_info_to_langsmith(safety_info)
+
+            # Serialize response for debugging
+            import json
+
+            response_dict = response.model_dump(exclude_none=True)
+            response_json = json.dumps(response_dict, indent=2, default=str)
+
+            # Create detailed error message
+            error_msg = "No content parts in response"
+            if safety_info:
+                if "finish_reason" in safety_info:
+                    error_msg += f". Finish reason: {safety_info['finish_reason']}"
+                if "finish_message" in safety_info:
+                    error_msg += f" - {safety_info['finish_message']}"
+                if "candidate_safety_ratings" in safety_info:
+                    error_msg += f". Safety ratings: {safety_info['candidate_safety_ratings']}"
+
+            error_msg += f"\n\nFull response:\n{response_json}"
+            raise ValueError(error_msg)
 
         # Extract text and images from parts
         for part in candidate.content.parts:
             # Handle text
-            if hasattr(part, "text") and part.text:
+            if part.text:
                 result.text = part.text
 
             # Handle images
