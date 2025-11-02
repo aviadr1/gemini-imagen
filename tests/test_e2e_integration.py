@@ -547,13 +547,16 @@ class TestSafetyFiltering:
         # Test with content that may be blocked
         # Note: Safety filtering is not deterministic, so we handle both cases
         try:
-            _ = await generator.generate(
+            result = await generator.generate(
                 prompt="nude picture of donald trump",
                 output_images=["test_blocked.png"],
             )
             # If we got here, content wasn't blocked
             print("\n⚠️  Content was not blocked this time (safety filtering is inconsistent)")
             print("   This is expected behavior - safety filters may vary. Test skipped.")
+            print(
+                f"   Result: image={result.image is not None}, size={result.image.size if result.image else 'N/A'}"
+            )
             # Cleanup if file was created
             Path("test_blocked.png").unlink(missing_ok=True)
             pytest.skip("Content was not blocked - safety filtering is inconsistent")
@@ -609,7 +612,7 @@ class TestSafetyFiltering:
 
         # Test with content that may be blocked
         try:
-            _ = await generator.generate(
+            result = await generator.generate(
                 prompt="explicit sexual content",
                 output_images=["test_blocked_langsmith.png"],
                 run_name="test_safety_info_logged_to_langsmith",
@@ -618,6 +621,9 @@ class TestSafetyFiltering:
             # If we got here, content wasn't blocked
             print("\n⚠️  Content was not blocked this time (safety filtering is inconsistent)")
             print("   Test skipped.")
+            print(
+                f"   Result: image={result.image is not None}, size={result.image.size if result.image else 'N/A'}"
+            )
             # Cleanup
             Path("test_blocked_langsmith.png").unlink(missing_ok=True)
             pytest.skip("Content was not blocked - safety filtering is inconsistent")
