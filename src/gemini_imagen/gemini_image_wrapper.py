@@ -662,66 +662,41 @@ class GeminiImageGenerator:
     def _format_safety_info(
         self, response: types.GenerateContentResponse, candidate: types.Candidate | None = None
     ) -> dict[str, Any]:
-        """Extract safety information from response for logging."""
+        """
+        Extract safety information from response for logging.
+
+        Uses actual SDK objects (not mapped strings) for better type safety and
+        forward compatibility. LangSmith will serialize enums/objects automatically.
+        """
         safety_info: dict[str, Any] = {}
 
-        # Check prompt feedback
+        # Check prompt feedback - use actual SDK objects
         if response.prompt_feedback:
             if response.prompt_feedback.block_reason:
                 safety_info["prompt_blocked"] = True
-                safety_info["prompt_block_reason"] = response.prompt_feedback.block_reason.name
+                # Store actual BlockedReason enum
+                safety_info["prompt_block_reason"] = response.prompt_feedback.block_reason
                 if response.prompt_feedback.block_reason_message:
                     safety_info["prompt_block_message"] = (
                         response.prompt_feedback.block_reason_message
                     )
 
-            # Log prompt safety ratings
+            # Store actual SafetyRating list (not mapped)
             if response.prompt_feedback.safety_ratings:
-                prompt_ratings: list[dict[str, Any]] = []
-                for rating in response.prompt_feedback.safety_ratings:
-                    rating_info: dict[str, Any] = {
-                        "category": rating.category.name if rating.category else "UNKNOWN"
-                    }
-                    if rating.probability:
-                        rating_info["probability"] = rating.probability.name
-                    if rating.probability_score is not None:
-                        rating_info["probability_score"] = rating.probability_score
-                    if rating.severity:
-                        rating_info["severity"] = rating.severity.name
-                    if rating.severity_score is not None:
-                        rating_info["severity_score"] = rating.severity_score
-                    if rating.blocked is not None:
-                        rating_info["blocked"] = rating.blocked
-                    prompt_ratings.append(rating_info)
-                safety_info["prompt_safety_ratings"] = prompt_ratings
+                safety_info["prompt_safety_ratings"] = response.prompt_feedback.safety_ratings
 
-        # Check candidate feedback
+        # Check candidate feedback - use actual SDK objects
         if candidate:
+            # Store actual FinishReason enum
             if candidate.finish_reason:
-                safety_info["finish_reason"] = candidate.finish_reason.name
+                safety_info["finish_reason"] = candidate.finish_reason
 
             if candidate.finish_message:
                 safety_info["finish_message"] = candidate.finish_message
 
-            # Log candidate safety ratings
+            # Store actual SafetyRating list (not mapped)
             if candidate.safety_ratings:
-                candidate_ratings: list[dict[str, Any]] = []
-                for rating in candidate.safety_ratings:
-                    candidate_rating_info: dict[str, Any] = {
-                        "category": rating.category.name if rating.category else "UNKNOWN"
-                    }
-                    if rating.probability:
-                        candidate_rating_info["probability"] = rating.probability.name
-                    if rating.probability_score is not None:
-                        candidate_rating_info["probability_score"] = rating.probability_score
-                    if rating.severity:
-                        candidate_rating_info["severity"] = rating.severity.name
-                    if rating.severity_score is not None:
-                        candidate_rating_info["severity_score"] = rating.severity_score
-                    if rating.blocked is not None:
-                        candidate_rating_info["blocked"] = rating.blocked
-                    candidate_ratings.append(candidate_rating_info)
-                safety_info["candidate_safety_ratings"] = candidate_ratings
+                safety_info["candidate_safety_ratings"] = candidate.safety_ratings
 
         return safety_info
 

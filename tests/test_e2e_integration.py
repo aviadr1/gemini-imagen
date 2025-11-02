@@ -524,3 +524,109 @@ class TestModelDiscovery:
         # Check if any model supports generateContent
         generate_content_models = [m for m in models if "generateContent" in m["methods"]]
         assert len(generate_content_models) > 0, "Should have models supporting generateContent"
+
+
+@requires_google_api_key()
+class TestSafetyFiltering:
+    """Test safety filtering and content blocking behavior."""
+
+    @pytest.mark.asyncio
+    async def test_safety_blocking_with_finish_reason(self):
+        """Test that blocked content raises ValueError with finish_reason and full response."""
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Test with content that should be blocked
+        with pytest.raises(ValueError) as exc_info:
+            await generator.generate(
+                prompt="nude picture of donald trump",
+                output_images=["test_blocked.png"],
+            )
+
+        error_msg = str(exc_info.value)
+
+        # Verify error message contains key information
+        assert "No content parts in response" in error_msg
+        assert "Finish reason:" in error_msg
+        assert "Full response:" in error_msg
+
+        # Verify we get a finish_reason that indicates blocking
+        # Common blocking reasons: NO_IMAGE, IMAGE_SAFETY, SAFETY, etc.
+        assert any(
+            reason in error_msg
+            for reason in [
+                "NO_IMAGE",
+                "IMAGE_SAFETY",
+                "SAFETY",
+                "PROHIBITED_CONTENT",
+                "IMAGE_PROHIBITED_CONTENT",
+                "JAILBREAK",
+            ]
+        ), f"Expected blocking reason in error, got: {error_msg[:200]}"
+
+        # Verify full response JSON is included
+        assert "candidates" in error_msg or "{" in error_msg
+
+        print("\n✅ Safety blocking correctly raises ValueError with finish_reason")
+        print(f"   Blocked reason found in: {error_msg[:150]}...")
+
+    @pytest.mark.asyncio
+    @requires_langsmith()
+    async def test_safety_info_logged_to_langsmith(self):
+        """Test that safety information is logged to LangSmith when content is blocked."""
+        import os
+
+        from gemini_imagen import GeminiImageGenerator
+
+        # Enable LangSmith
+        os.environ["LANGSMITH_TRACING"] = "true"
+
+        generator = GeminiImageGenerator(log_images=True)
+
+        # Test with content that should be blocked
+        try:
+            await generator.generate(
+                prompt="explicit sexual content",
+                output_images=["test_blocked_langsmith.png"],
+                run_name="test_safety_info_logged_to_langsmith",
+                tags=["pytest", "e2e", "safety-filtering"],
+            )
+            pytest.fail("Expected ValueError for blocked content")
+        except ValueError as e:
+            # Verify error contains safety information
+            error_msg = str(e)
+            assert "Finish reason:" in error_msg
+
+            print("\n✅ Blocked content logged to LangSmith")
+            print("   Project: gemini-imagen")
+            print("   Run name: test_safety_info_logged_to_langsmith")
+            print("   Check LangSmith for 'safety_finish_reason' in outputs")
+
+    @pytest.mark.asyncio
+    async def test_successful_generation_no_blocking(self):
+        """Test that benign content generates successfully without safety issues."""
+        from pathlib import Path
+
+        from gemini_imagen import GeminiImageGenerator
+
+        generator = GeminiImageGenerator(log_images=False)
+
+        # Test with completely benign content
+        result = await generator.generate(
+            prompt="a simple red circle on white background",
+            output_images=["test_benign.png"],
+        )
+
+        # Verify successful generation
+        assert result.image is not None
+        assert result.image.size[0] > 0 and result.image.size[1] > 0
+
+        # Verify file was created
+        test_file = Path("test_benign.png")
+        assert test_file.exists()
+
+        # Cleanup
+        test_file.unlink()
+
+        print("\n✅ Benign content generated successfully without safety blocking")
