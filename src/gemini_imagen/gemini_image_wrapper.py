@@ -701,7 +701,7 @@ class GeminiImageGenerator:
     def _log_response_to_langsmith(
         self, response: types.GenerateContentResponse, safety_info: dict[str, Any]
     ) -> None:
-        """Log response and safety information to LangSmith."""
+        """Log complete response and safety information to LangSmith."""
         if not self.log_images:
             return
 
@@ -710,21 +710,13 @@ class GeminiImageGenerator:
 
             run_tree = get_current_run_tree()
             if run_tree and run_tree.outputs is not None:
-                # Log safety info
-                for key, value in safety_info.items():
-                    run_tree.outputs[f"safety_{key}"] = value
+                # Log entire response object - LangSmith will serialize it
+                run_tree.outputs["gemini_response"] = response
 
-                # Log additional response metadata
-                run_tree.outputs["model_version"] = response.model_version
-                run_tree.outputs["response_id"] = response.response_id
-                if response.usage_metadata:
-                    run_tree.outputs["usage_metadata"] = response.usage_metadata
-
-                # Log finish reason with interpretation if present
+                # Log finish reason interpretation if present
                 if "candidate" in safety_info:
                     candidate_info = safety_info["candidate"]
                     if candidate_info.finish_reason:
-                        run_tree.outputs["finish_reason"] = candidate_info.finish_reason
                         run_tree.outputs["finish_reason_interpretation"] = (
                             self._interpret_finish_reason(candidate_info.finish_reason)
                         )
