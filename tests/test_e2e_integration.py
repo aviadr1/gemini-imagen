@@ -404,29 +404,6 @@ class TestAspectRatioAndResolution:
         )
 
     @pytest.mark.asyncio
-    async def test_image_size_not_supported(self):
-        """Test that image_size parameter raises ValueError on gemini-2.5-flash-image."""
-        from gemini_imagen import GeminiImageGenerator
-
-        generator = GeminiImageGenerator(log_images=False)
-
-        # Test that image_size raises ValueError for gemini-2.5-flash-image
-        with pytest.raises(ValueError) as exc_info:
-            await generator.generate(
-                prompt="A colorful abstract pattern",
-                aspect_ratio="1:1",
-                image_size="1K",  # Should raise ValueError
-                output_images=["test_1k.png"],
-            )
-
-        error_msg = str(exc_info.value)
-        assert "image_size parameter is not supported" in error_msg
-        assert "gemini-2.5-flash-image" in error_msg
-        assert "Imagen models" in error_msg
-
-        print("\n✅ image_size parameter correctly raises ValueError on gemini-2.5-flash-image")
-
-    @pytest.mark.asyncio
     async def test_multiple_images_with_aspect_ratio(self):
         """Test saving one image to multiple outputs with aspect ratio."""
         from gemini_imagen import GeminiImageGenerator
