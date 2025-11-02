@@ -566,8 +566,10 @@ class TestSafetyFiltering:
             error_msg = str(exc_info)
 
             # Verify error message contains key information
-            assert "No content parts in response" in error_msg
+            assert "CONTENT GENERATION FAILED" in error_msg
             assert "Finish reason:" in error_msg
+            assert "Model:" in error_msg
+            assert "Response ID:" in error_msg
             assert "Full response:" in error_msg
 
             # Verify we get a finish_reason that indicates blocking
@@ -632,12 +634,15 @@ class TestSafetyFiltering:
         except ValueError as e:
             # Content was blocked - verify error contains safety information
             error_msg = str(e)
-            assert "Finish reason:" in error_msg
+            assert "CONTENT GENERATION FAILED" in error_msg
+            # Can be either "Block reason:" (prompt blocked) or "Finish reason:" (content blocked)
+            assert "Block reason:" in error_msg or "Finish reason:" in error_msg
+            assert "Model:" in error_msg
 
             print("\n✅ Blocked content logged to LangSmith")
             print("   Project: gemini-imagen")
             print("   Run name: test_safety_info_logged_to_langsmith")
-            print("   Check LangSmith for 'safety_finish_reason' in outputs")
+            print("   Check LangSmith for safety info and finish_reason_interpretation")
 
     @pytest.mark.asyncio
     async def test_successful_generation_no_blocking(self):

@@ -659,6 +659,25 @@ class GeminiImageGenerator:
             ),
         )
 
+    def _interpret_finish_reason(self, finish_reason: types.FinishReason) -> str:
+        """Provide human-readable interpretation of finish reason."""
+        interpretations = {
+            types.FinishReason.STOP: "Generation completed successfully",
+            types.FinishReason.NO_IMAGE: "No image generated - likely blocked by safety filters or content policy",
+            types.FinishReason.IMAGE_SAFETY: "Image generation blocked due to safety policy violation",
+            types.FinishReason.SAFETY: "Content blocked due to safety policy violation",
+            types.FinishReason.PROHIBITED_CONTENT: "Content blocked - prohibited by content policy",
+            types.FinishReason.IMAGE_PROHIBITED_CONTENT: "Image content blocked - prohibited by content policy",
+            types.FinishReason.BLOCKLIST: "Content blocked - matched blocklist",
+            types.FinishReason.SPII: "Content blocked - contains sensitive personal information",
+            types.FinishReason.MAX_TOKENS: "Generation stopped - reached maximum token limit",
+            types.FinishReason.RECITATION: "Content blocked - potential copyright/recitation issue",
+            types.FinishReason.LANGUAGE: "Content blocked - language not supported",
+            types.FinishReason.MALFORMED_FUNCTION_CALL: "Generation failed - malformed function call",
+            types.FinishReason.OTHER: "Generation stopped for unspecified reason",
+        }
+        return interpretations.get(finish_reason, f"Unknown finish reason: {finish_reason}")
+
     def _format_safety_info(
         self, response: types.GenerateContentResponse, candidate: types.Candidate | None = None
     ) -> dict[str, Any]:
@@ -679,9 +698,11 @@ class GeminiImageGenerator:
 
         return safety_info
 
-    def _log_safety_info_to_langsmith(self, safety_info: dict[str, Any]) -> None:
-        """Log safety information to LangSmith."""
-        if not self.log_images or not safety_info:
+    def _log_response_to_langsmith(
+        self, response: types.GenerateContentResponse, safety_info: dict[str, Any]
+    ) -> None:
+        """Log response and safety information to LangSmith."""
+        if not self.log_images:
             return
 
         try:
@@ -689,12 +710,27 @@ class GeminiImageGenerator:
 
             run_tree = get_current_run_tree()
             if run_tree and run_tree.outputs is not None:
-                # Log safety info to outputs
+                # Log safety info
                 for key, value in safety_info.items():
                     run_tree.outputs[f"safety_{key}"] = value
 
+                # Log additional response metadata
+                run_tree.outputs["model_version"] = response.model_version
+                run_tree.outputs["response_id"] = response.response_id
+                if response.usage_metadata:
+                    run_tree.outputs["usage_metadata"] = response.usage_metadata
+
+                # Log finish reason with interpretation if present
+                if "candidate" in safety_info:
+                    candidate_info = safety_info["candidate"]
+                    if candidate_info.finish_reason:
+                        run_tree.outputs["finish_reason"] = candidate_info.finish_reason
+                        run_tree.outputs["finish_reason_interpretation"] = (
+                            self._interpret_finish_reason(candidate_info.finish_reason)
+                        )
+
         except Exception as e:
-            print(f"Warning: Could not log safety info to LangSmith: {e}")
+            print(f"Warning: Could not log response info to LangSmith: {e}")
 
     def _extract_response(self, response: types.GenerateContentResponse) -> GenerationResult:
         """Extract text and images from Gemini response."""
@@ -703,7 +739,7 @@ class GeminiImageGenerator:
         if not response.candidates:
             # Check if prompt was blocked
             safety_info = self._format_safety_info(response)
-            self._log_safety_info_to_langsmith(safety_info)
+            self._log_response_to_langsmith(response, safety_info)
 
             # Serialize response for debugging
             import json
@@ -711,17 +747,20 @@ class GeminiImageGenerator:
             response_dict = response.model_dump(exclude_none=True)
             response_json = json.dumps(response_dict, indent=2, default=str)
 
-            # Create detailed error message
-            error_msg = "No candidates in response"
+            # Create detailed error message with clear summary
+            error_msg = "❌ CONTENT GENERATION FAILED: No candidates in response"
             if "prompt_feedback" in safety_info:
                 prompt_feedback = safety_info["prompt_feedback"]
                 if prompt_feedback.block_reason:
-                    error_msg += f". Prompt was blocked: {prompt_feedback.block_reason}"
+                    error_msg += "\n\nReason: Prompt blocked by content policy"
+                    error_msg += f"\nBlock reason: {prompt_feedback.block_reason}"
                     if prompt_feedback.block_reason_message:
-                        error_msg += f" - {prompt_feedback.block_reason_message}"
+                        error_msg += f"\nMessage: {prompt_feedback.block_reason_message}"
                 if prompt_feedback.safety_ratings:
-                    error_msg += f". Safety ratings: {prompt_feedback.safety_ratings}"
+                    error_msg += f"\nSafety ratings: {prompt_feedback.safety_ratings}"
 
+            error_msg += f"\n\nModel: {response.model_version}"
+            error_msg += f"\nResponse ID: {response.response_id}"
             error_msg += f"\n\nFull response:\n{response_json}"
             raise ValueError(error_msg)
 
@@ -731,7 +770,7 @@ class GeminiImageGenerator:
         if not candidate.content or not candidate.content.parts:
             # Extract and log safety information
             safety_info = self._format_safety_info(response, candidate)
-            self._log_safety_info_to_langsmith(safety_info)
+            self._log_response_to_langsmith(response, safety_info)
 
             # Serialize response for debugging
             import json
@@ -739,17 +778,23 @@ class GeminiImageGenerator:
             response_dict = response.model_dump(exclude_none=True)
             response_json = json.dumps(response_dict, indent=2, default=str)
 
-            # Create detailed error message
-            error_msg = "No content parts in response"
+            # Create detailed error message with clear summary
+            error_msg = "❌ CONTENT GENERATION FAILED: No content generated"
             if "candidate" in safety_info:
                 candidate_info = safety_info["candidate"]
                 if candidate_info.finish_reason:
-                    error_msg += f". Finish reason: {candidate_info.finish_reason}"
+                    interpretation = self._interpret_finish_reason(candidate_info.finish_reason)
+                    error_msg += f"\n\n{interpretation}"
+                    error_msg += f"\nFinish reason: {candidate_info.finish_reason}"
                 if candidate_info.finish_message:
-                    error_msg += f" - {candidate_info.finish_message}"
+                    error_msg += f"\nFinish message: {candidate_info.finish_message}"
                 if candidate_info.safety_ratings:
-                    error_msg += f". Safety ratings: {candidate_info.safety_ratings}"
+                    error_msg += f"\nSafety ratings: {candidate_info.safety_ratings}"
 
+            error_msg += f"\n\nModel: {response.model_version}"
+            error_msg += f"\nResponse ID: {response.response_id}"
+            if response.usage_metadata:
+                error_msg += f"\nTokens used: {response.usage_metadata.total_token_count}"
             error_msg += f"\n\nFull response:\n{response_json}"
             raise ValueError(error_msg)
 
