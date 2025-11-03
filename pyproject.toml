@@ -119,6 +119,11 @@ markers = [
     "integration: marks tests as integration tests that require real API keys (deselect with '-m \"not integration\"')",
     "flaky: marks tests as flaky (non-deterministic behavior, skipped by default, run with '-m flaky')",
 ]
+filterwarnings = [
+    # Ignore third-party library Pydantic deprecation warnings
+    "ignore:Using `@model_validator` with mode='after':pydantic.PydanticDeprecatedSince212",
+    "ignore:The `dict` method is deprecated:pydantic.PydanticDeprecatedSince20",
+]
 
 [dependency-groups]
 dev = [

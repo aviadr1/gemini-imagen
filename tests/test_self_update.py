@@ -6,7 +6,7 @@ These tests verify the update checking and installation logic.
 
 import json
 import subprocess
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -274,7 +274,7 @@ class TestBackgroundUpdateCheck:
         receipt = {
             "version": "0.6.0",
             "install_method": "standalone",
-            "last_update_check": datetime.utcnow().isoformat() + "Z",
+            "last_update_check": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
 
         with (
@@ -289,11 +289,11 @@ class TestBackgroundUpdateCheck:
 
     def test_checks_if_not_checked_recently(self, tmp_path: Path) -> None:
         """Test that check happens if not done recently."""
-        yesterday = datetime.utcnow() - timedelta(days=2)
+        yesterday = datetime.now(UTC) - timedelta(days=2)
         receipt = {
             "version": "0.6.0",
             "install_method": "standalone",
-            "last_update_check": yesterday.isoformat() + "Z",
+            "last_update_check": yesterday.isoformat().replace("+00:00", "Z"),
         }
 
         with (

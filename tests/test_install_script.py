@@ -126,7 +126,7 @@ class TestInstallPaths:
         monkeypatch.setenv("XDG_DATA_HOME", str(custom_data))
         monkeypatch.setenv("XDG_CONFIG_HOME", str(custom_config))
 
-        venv_dir, wrapper_dir, config_dir = install.get_install_paths("linux")
+        venv_dir, _wrapper_dir, config_dir = install.get_install_paths("linux")
 
         assert venv_dir == custom_data / "gemini-imagen"
         assert config_dir == custom_config / "imagen"

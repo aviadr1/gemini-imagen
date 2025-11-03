@@ -7,7 +7,7 @@ Allows users who installed via the standalone installer to update to the latest 
 import json
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import click
@@ -266,8 +266,8 @@ def check_for_updates_background() -> None:
         last_check_str = receipt.get("last_update_check")
         if last_check_str:
             try:
-                last_check = datetime.fromisoformat(last_check_str.rstrip("Z"))
-                if datetime.utcnow() - last_check < timedelta(days=1):
+                last_check = datetime.fromisoformat(last_check_str.rstrip("Z")).replace(tzinfo=UTC)
+                if datetime.now(UTC) - last_check < timedelta(days=1):
                     # Checked within last 24 hours, skip
                     return
             except Exception:
@@ -285,7 +285,7 @@ def check_for_updates_background() -> None:
             )
 
         # Update last check time
-        receipt["last_update_check"] = datetime.utcnow().isoformat() + "Z"
+        receipt["last_update_check"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         save_install_receipt(receipt)
 
     except Exception:
