@@ -63,7 +63,7 @@ def parse_safety_setting(setting_str: str) -> list[SafetySetting]:
 
     # Parse threshold
     threshold: Any
-    if threshold_part.upper() in SAFETY_PRESETS:
+    if threshold_part.lower() in SAFETY_PRESETS:
         threshold = SAFETY_PRESETS[threshold_part.lower()]
     else:
         # Try to get enum by name

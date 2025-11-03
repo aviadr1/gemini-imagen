@@ -82,10 +82,10 @@ def config_set(key: str, value: str) -> None:
             raise click.exceptions.Exit(1)
 
         threshold = SAFETY_PRESETS[preset]
-        # Store as list of dicts that can be serialized to YAML
+        # Store as list of dicts with string values that can be serialized to YAML
         parsed_value = [
             {
-                "category": cat,
+                "category": str(cat),
                 "threshold": str(threshold),
             }
             for cat in [
