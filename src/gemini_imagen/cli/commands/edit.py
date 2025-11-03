@@ -10,7 +10,7 @@ import sys
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
-from ...models import GenerateParams
+from ...models import GenerateParams, ImageSource
 from ..config import get_config
 from ..utils import (
     clear_progress,
@@ -135,7 +135,7 @@ def edit(
         output = validate_output_path(output)
 
         # Validate input images
-        validated_inputs = []
+        validated_inputs: list[ImageSource] = []
         for i, input_path in enumerate(input_images):
             validated_path = validate_input_path(input_path)
 

@@ -63,7 +63,9 @@ class TestGenerateCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_generation_result)
 
             with (
-                patch("gemini_imagen.cli.commands.generate.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.generate.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.generate.get_config") as mock_config,
             ):
                 # Setup mocks
@@ -96,7 +98,9 @@ class TestGenerateCommandWide:
                 # Verify async generate was called with Pydantic model
                 mock_generator_instance.generate.assert_called_once()
                 call_args = mock_generator_instance.generate.call_args[0]
-                assert len(call_args) == 1  # Should be called with one positional arg (the Pydantic model)
+                assert (
+                    len(call_args) == 1
+                )  # Should be called with one positional arg (the Pydantic model)
                 params = call_args[0]
                 assert params.prompt == "a serene landscape"
                 assert params.output_images == [output_path]
@@ -126,7 +130,9 @@ class TestGenerateCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_generation_result)
 
             with (
-                patch("gemini_imagen.cli.commands.generate.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.generate.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.generate.get_config") as mock_config,
             ):
                 mock_generator_class.return_value = mock_generator_instance
@@ -184,7 +190,9 @@ class TestGenerateCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_generation_result)
 
             with (
-                patch("gemini_imagen.cli.commands.generate.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.generate.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.generate.get_config") as mock_config,
             ):
                 mock_generator_class.return_value = mock_generator_instance
@@ -232,7 +240,9 @@ class TestAnalyzeCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_analysis_result)
 
             with (
-                patch("gemini_imagen.cli.commands.analyze.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.analyze.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.analyze.get_config") as mock_config,
             ):
                 mock_generator_class.return_value = mock_generator_instance
@@ -275,7 +285,9 @@ class TestAnalyzeCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_analysis_result)
 
             with (
-                patch("gemini_imagen.cli.commands.analyze.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.analyze.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.analyze.get_config") as mock_config,
             ):
                 mock_generator_class.return_value = mock_generator_instance
@@ -327,7 +339,9 @@ class TestEditCommandWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_generation_result)
 
             with (
-                patch("gemini_imagen.cli.commands.edit.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.edit.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.edit.get_config") as mock_config,
             ):
                 mock_generator_class.return_value = mock_generator_instance
@@ -410,7 +424,9 @@ class TestTemplateWorkflowWide:
             mock_generator_instance.generate = AsyncMock(return_value=mock_generation_result)
 
             with (
-                patch("gemini_imagen.cli.commands.generate.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.generate.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.generate.get_config") as mock_config,
                 patch("gemini_imagen.cli.commands.generate.load_template") as mock_load_template,
             ):
@@ -468,7 +484,9 @@ class TestTemplateWorkflowWide:
             }
 
             with (
-                patch("gemini_imagen.cli.commands.generate.GeminiImageGenerator") as mock_generator_class,
+                patch(
+                    "gemini_imagen.cli.commands.generate.GeminiImageGenerator"
+                ) as mock_generator_class,
                 patch("gemini_imagen.cli.commands.generate.get_config") as mock_config,
                 patch("gemini_imagen.cli.commands.generate.load_template") as mock_load_template,
             ):
@@ -511,7 +529,9 @@ class TestTemplateWorkflowWide:
 class TestConfigurationWide:
     """Wide tests for configuration management across commands."""
 
-    def test_model_configuration_for_different_commands(self, runner, mock_generation_result, mock_analysis_result):
+    def test_model_configuration_for_different_commands(
+        self, runner, mock_generation_result, mock_analysis_result
+    ):
         """Test that generation and analysis use correct default models."""
         with (
             tempfile.NamedTemporaryFile(suffix=".png", delete=False) as gen_output,
@@ -560,7 +580,9 @@ class TestConfigurationWide:
             mock_analyze_instance.generate = AsyncMock(return_value=mock_analysis_result)
 
             with (
-                patch("gemini_imagen.cli.commands.analyze.GeminiImageGenerator") as mock_analyze_class,
+                patch(
+                    "gemini_imagen.cli.commands.analyze.GeminiImageGenerator"
+                ) as mock_analyze_class,
                 patch("gemini_imagen.cli.commands.analyze.get_config") as mock_analyze_config,
             ):
                 mock_analyze_class.return_value = mock_analyze_instance

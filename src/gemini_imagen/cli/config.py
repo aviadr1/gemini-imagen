@@ -180,7 +180,9 @@ class Config:
             Model name to use for image generation
         """
         # Try generation_model first, then default_model, then hardcoded default
-        return self.get("generation_model") or self.get("default_model", default=DEFAULT_GENERATION_MODEL)
+        return self.get("generation_model") or self.get(
+            "default_model", default=DEFAULT_GENERATION_MODEL
+        )
 
     def get_analysis_model(self) -> str:
         """
@@ -196,7 +198,9 @@ class Config:
             Model name to use for image analysis
         """
         # Try analysis_model first, then default_model, then hardcoded default
-        return self.get("analysis_model") or self.get("default_model", default=DEFAULT_ANALYSIS_MODEL)
+        return self.get("analysis_model") or self.get(
+            "default_model", default=DEFAULT_ANALYSIS_MODEL
+        )
 
     def get_langsmith_tracing(self) -> bool:
         """Get LangSmith tracing enabled status."""

@@ -2,8 +2,6 @@
 Tests for job merge utility.
 """
 
-import pytest
-
 from gemini_imagen.cli.job_merge import (
     deep_merge,
     merge_template_keys_overrides,
@@ -214,9 +212,7 @@ class TestMergeTemplateKeysOverrides:
             {"metadata": {"version": 2, "tags": ["test"]}},
         ]
         result = merge_template_keys_overrides(template=template, keys=keys)
-        assert result == {
-            "metadata": {"author": "Alice", "version": 2, "tags": ["test"]}
-        }
+        assert result == {"metadata": {"author": "Alice", "version": 2, "tags": ["test"]}}
 
     def test_real_world_scenario(self):
         """Test a real-world scenario with template, keys, and overrides."""

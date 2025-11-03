@@ -27,7 +27,7 @@ def extract_variables(text: str) -> set[str]:
         >>> extract_variables("{greeting} {name}, you have {count} messages")
         {'greeting', 'name', 'count'}
     """
-    variables = set(re.findall(r'\{(\w+)\}', text))
+    variables = set(re.findall(r"\{(\w+)\}", text))
     logger.debug(f"Extracted {len(variables)} variables from text: {variables}")
     return variables
 
@@ -72,7 +72,9 @@ def find_template_variables(template: dict[str, Any]) -> dict[str, list[str]]:
                 variables_by_field[field] = sorted(all_vars)
                 logger.debug(f"Field '{field}' uses variables: {all_vars}")
 
-    logger.info(f"Template uses {sum(len(v) for v in variables_by_field.values())} variable(s) across {len(variables_by_field)} field(s)")
+    logger.info(
+        f"Template uses {sum(len(v) for v in variables_by_field.values())} variable(s) across {len(variables_by_field)} field(s)"
+    )
     return variables_by_field
 
 
@@ -120,7 +122,7 @@ def substitute_variables(
     logger.info(f"Substituting variables in job with {len(variables)} variable(s)")
     logger.debug(f"Available variables: {list(variables.keys())}")
 
-    result = {}
+    result: dict[str, Any] = {}
 
     for key, value in job.items():
         if isinstance(value, str):
@@ -134,13 +136,15 @@ def substitute_variables(
                         raise
                     # In non-strict mode, keep original
                     result[key] = value
-                    logger.warning(f"Skipped variable substitution in field '{key}' due to missing variable")
+                    logger.warning(
+                        f"Skipped variable substitution in field '{key}' due to missing variable"
+                    )
             else:
                 result[key] = value
 
         elif isinstance(value, list):
             # Substitute in list items
-            substituted_list = []
+            substituted_list: list[Any] = []
             for item in value:
                 if isinstance(item, str) and "{" in item:
                     try:

@@ -9,11 +9,12 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
-from ...models import GenerateParams
+from ...models import GenerateParams, ImageSource
 from ..config import get_config
 from ..job_merge import merge_template_keys_overrides, split_job_and_variables
 from ..templates import load_template
@@ -237,7 +238,7 @@ def generate(
             logger.debug(f"System prompt loaded from file: {file_path}")
 
         # Step 5: Build CLI overrides dict
-        cli_overrides = {}
+        cli_overrides: dict[str, Any] = {}
 
         # Handle prompt (from CLI arg or stdin, but not required if in template/keys)
         if prompt is not None:
@@ -254,7 +255,7 @@ def generate(
 
         # Handle input images
         if input_images:
-            validated_inputs = []
+            validated_inputs: list[ImageSource] = []
             for i, input_path in enumerate(input_images):
                 validated_path = validate_input_path(input_path)
                 if i < len(labels):
@@ -386,7 +387,9 @@ def generate(
         # Generate (final_job now only contains library params)
         # Use Pydantic model for type safety and automatic None filtering
         params = GenerateParams(**final_job)
-        logger.debug(f"Calling generator.generate() with: {list(params.model_dump(exclude_none=True).keys())}")
+        logger.debug(
+            f"Calling generator.generate() with: {list(params.model_dump(exclude_none=True).keys())}"
+        )
         result = asyncio.run(generator.generate(params))
 
         # Clear progress

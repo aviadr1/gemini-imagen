@@ -91,9 +91,7 @@ LIBRARY_PARAMS = {
 }
 
 
-def split_job_and_variables(
-    merged: dict[str, Any]
-) -> tuple[dict[str, Any], dict[str, Any]]:
+def split_job_and_variables(merged: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Split a merged job dictionary into library parameters and variables.
 

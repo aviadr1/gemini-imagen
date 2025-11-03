@@ -107,9 +107,7 @@ class TestSubstituteInString:
 
     def test_substitute_multiple_variables(self):
         """Test substituting multiple variables."""
-        result = substitute_in_string(
-            "{greeting} {name}", {"greeting": "Hello", "name": "Alice"}
-        )
+        result = substitute_in_string("{greeting} {name}", {"greeting": "Hello", "name": "Alice"})
         assert result == "Hello Alice"
 
     def test_substitute_missing_variable(self):
@@ -119,16 +117,12 @@ class TestSubstituteInString:
 
     def test_substitute_with_extra_variables(self):
         """Test that extra variables don't cause errors."""
-        result = substitute_in_string(
-            "Hello {name}!", {"name": "Alice", "extra": "value"}
-        )
+        result = substitute_in_string("Hello {name}!", {"name": "Alice", "extra": "value"})
         assert result == "Hello Alice!"
 
     def test_substitute_json_value(self):
         """Test substituting with JSON string value."""
-        result = substitute_in_string(
-            "Context: {data}", {"data": '{"key": "value"}'}
-        )
+        result = substitute_in_string("Context: {data}", {"data": '{"key": "value"}'})
         assert result == 'Context: {"key": "value"}'
 
 
@@ -211,7 +205,9 @@ class TestSubstituteVariables:
             "channel_id": "drumming2-abc123",
         }
         result = substitute_variables(job, variables)
-        assert result["prompt"] == '# Community\n{"name": "PowerfulJRE"}\n\n# Host\n{"name": "Gigoz"}'
+        assert (
+            result["prompt"] == '# Community\n{"name": "PowerfulJRE"}\n\n# Host\n{"name": "Gigoz"}'
+        )
         assert result["output_images"] == ["s3://bucket/thumbnails/drumming2-abc123/thumb.jpg"]
         assert result["input_images"] == job["input_images"]  # Unchanged
 

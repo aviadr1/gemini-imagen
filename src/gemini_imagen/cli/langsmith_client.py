@@ -28,7 +28,7 @@ def get_langsmith_api_key() -> str | None:
     return os.environ.get("LANGSMITH_API_KEY")
 
 
-def parse_trace_url(url: str) -> tuple[str, str] | None:
+def parse_trace_url(url: str) -> tuple[str | None, str] | None:
     """
     Parse a LangSmith trace URL to extract project and run ID.
 

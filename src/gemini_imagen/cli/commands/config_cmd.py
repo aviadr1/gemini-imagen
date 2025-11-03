@@ -43,10 +43,11 @@ def config_set(key: str, value: str) -> None:
     cfg = get_config()
 
     # Convert string booleans
+    parsed_value: str | bool = value
     if value.lower() in ("true", "false"):
-        value = value.lower() == "true"
+        parsed_value = value.lower() == "true"
 
-    cfg.set(key, value)
+    cfg.set(key, parsed_value)
     echo_success(f"Set {key} = {value}")
     echo_info(f"Config saved to: {cfg.get_path()}")
 

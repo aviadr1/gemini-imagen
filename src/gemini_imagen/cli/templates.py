@@ -115,9 +115,7 @@ def list_templates() -> list[str]:
         logger.debug("Templates directory does not exist yet")
         return []
 
-    templates = [
-        path.stem for path in templates_dir.glob("*.json")
-    ]
+    templates = [path.stem for path in templates_dir.glob("*.json")]
 
     logger.info(f"Found {len(templates)} template(s)")
     logger.debug(f"Templates: {templates}")

@@ -345,10 +345,8 @@ class GeminiImageGenerator:
         output_text: bool = False,
         # LangSmith configuration
         run_name: str | None = None,
-        metadata: dict[str, str] | None = None,  # noqa: ARG002 - used by @traceable decorator
-        tags: list[str] | None = None,  # noqa: ARG002 - used by @traceable decorator
-        # For backward compatibility and type checking
-        **kwargs: Any,
+        metadata: dict[str, str] | None = None,  # - used by @traceable decorator
+        tags: list[str] | None = None,  # - used by @traceable decorator
     ) -> GenerationResult:
         """
         Unified generation function with support for:
@@ -467,6 +465,9 @@ class GeminiImageGenerator:
             run_name = params_dict.get("run_name", run_name)
             metadata = params_dict.get("metadata", metadata)
             tags = params_dict.get("tags", tags)
+
+        # Type check: ensure prompt is a string at this point
+        assert isinstance(prompt, str), "prompt must be a string"
 
         # Set LangSmith run name if provided
         if run_name:

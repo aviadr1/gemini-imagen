@@ -7,7 +7,17 @@ Provides a command-line interface for image generation and analysis using Google
 import click
 
 from .. import __version__
-from .commands import analyze, config_cmd, edit, generate, keys, langsmith, models, storage, template
+from .commands import (
+    analyze,
+    config_cmd,
+    edit,
+    generate,
+    keys,
+    langsmith,
+    models,
+    storage,
+    template,
+)
 
 
 @click.group()

@@ -184,7 +184,7 @@ def split_template_from_trace(trace_data: dict[str, Any]) -> tuple[dict[str, Any
                 # Might be a structural field for template
                 if key in ["temperature", "aspect_ratio", "tags", "output_text"]:
                     template[key] = value
-                elif isinstance(value, (str, int, float, bool, type(None))):
+                elif isinstance(value, str | int | float | bool | type(None)):
                     # Could be either, but lean towards keys if it's data
                     if isinstance(value, str) and len(value) > 50:
                         keys[key] = value

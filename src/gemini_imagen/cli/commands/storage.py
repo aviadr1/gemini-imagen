@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import click
+from PIL import Image
 
 from ...s3_utils import download_from_s3, is_s3_uri, parse_s3_uri, upload_to_s3
 from ..config import get_config
@@ -209,7 +210,8 @@ def download(source: str, destination: str, json_mode: bool) -> None:
         # Download
         image = asyncio.run(download_from_s3(bucket, key))
 
-        # Save locally
+        # Save locally (download_from_s3 returns Image when local_path is None)
+        assert isinstance(image, Image.Image), "Expected PIL Image from download_from_s3"
         image.save(dest_path)
 
         # Clear progress
