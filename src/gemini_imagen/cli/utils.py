@@ -134,11 +134,11 @@ def validate_output_path(path: str, allow_s3: bool = True) -> str:
     Validate output path.
 
     Args:
-        path: Output path
+        path: Output path (supports ~ for home directory)
         allow_s3: Whether to allow S3 URIs
 
     Returns:
-        Validated path
+        Validated path with ~ expanded
 
     Raises:
         click.ClickException: If path is invalid
@@ -151,8 +151,8 @@ def validate_output_path(path: str, allow_s3: bool = True) -> str:
             raise click.ClickException("S3 URIs are not supported for this operation")
         return path
 
-    # Check if it's a local path
-    output_path = Path(path)
+    # Check if it's a local path - expand ~ and resolve to absolute path
+    output_path = Path(path).expanduser().resolve()
 
     # Check if parent directory exists
     if output_path.parent != Path() and not output_path.parent.exists():
@@ -161,7 +161,7 @@ def validate_output_path(path: str, allow_s3: bool = True) -> str:
             f"Create it first with: mkdir -p {output_path.parent}"
         )
 
-    return path
+    return str(output_path)
 
 
 def validate_input_path(path: str) -> str:
@@ -169,10 +169,10 @@ def validate_input_path(path: str) -> str:
     Validate input path.
 
     Args:
-        path: Input path (can be local path, S3 URI, or HTTP URL)
+        path: Input path (can be local path with ~ for home, S3 URI, or HTTP URL)
 
     Returns:
-        Validated path
+        Validated path with ~ expanded
 
     Raises:
         click.ClickException: If path is invalid
@@ -183,8 +183,8 @@ def validate_input_path(path: str) -> str:
     if is_s3_uri(path) or is_http_url(path):
         return path
 
-    # Check if local file exists
-    input_path = Path(path)
+    # Check if local file exists - expand ~ and resolve to absolute path
+    input_path = Path(path).expanduser().resolve()
     if not input_path.exists():
         raise click.ClickException(f"Input file does not exist: {path}")
     if not input_path.is_file():
