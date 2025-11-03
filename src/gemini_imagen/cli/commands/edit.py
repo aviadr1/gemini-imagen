@@ -160,7 +160,7 @@ def edit(
 
         # Get model
         if model is None:
-            model = cfg.get_default_model()
+            model = cfg.get_generation_model()
 
         # Get tracing setting
         if trace is None:

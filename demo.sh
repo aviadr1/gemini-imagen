@@ -23,7 +23,7 @@ cleanup() {
         rm -rf "$DEMO_DIR"
     fi
     # Clean up test template
-    uv run python -m gemini_imagen.cli.main template delete demo_podcast_thumb 2>/dev/null || true
+    uv run imagen template delete demo_podcast_thumb 2>/dev/null || true
     echo "Cleanup complete."
 }
 
@@ -47,7 +47,7 @@ echo "=========================================="
 echo ""
 
 echo "1️⃣  Generating a podcast thumbnail..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     "A professional podcast thumbnail featuring bold typography with 'THE SHOW' text, \
 microphone icon, vibrant colors, modern design" \
     -o "$DEMO_DIR/demo_base_thumbnail.png" \
@@ -67,7 +67,7 @@ echo "=========================================="
 echo ""
 
 echo "2️⃣  Analyzing what we generated..."
-uv run python -m gemini_imagen.cli.main analyze "$DEMO_DIR/demo_base_thumbnail.png" > "$DEMO_DIR/demo_analysis.txt"
+uv run imagen analyze "$DEMO_DIR/demo_base_thumbnail.png" > "$DEMO_DIR/demo_analysis.txt"
 
 echo ""
 echo "📊 Analysis saved to: demo_analysis.txt"
@@ -85,7 +85,7 @@ echo "=========================================="
 echo ""
 
 echo "3️⃣  Creating a variation with added guest photo..."
-uv run python -m gemini_imagen.cli.main edit \
+uv run imagen edit \
     "Keep the same style and layout but add space for a guest photo on the right side" \
     -i "$DEMO_DIR/demo_base_thumbnail.png" \
     --label "Original Design:" \
@@ -119,7 +119,7 @@ cat > "$DEMO_DIR/podcast_template.json" <<'EOF'
 EOF
 
 # Save the template
-uv run python -m gemini_imagen.cli.main template save demo_podcast_thumb --from-json "$DEMO_DIR/podcast_template.json"
+uv run imagen template save demo_podcast_thumb --from-json "$DEMO_DIR/podcast_template.json"
 
 echo ""
 echo "✅ Template 'demo_podcast_thumb' saved"
@@ -127,7 +127,7 @@ echo ""
 
 # Show template details
 echo "📋 Template details:"
-uv run python -m gemini_imagen.cli.main template show demo_podcast_thumb
+uv run imagen template show demo_podcast_thumb
 
 echo ""
 
@@ -156,7 +156,7 @@ echo "📄 Keys file created: episode1_keys.json"
 echo ""
 
 echo "6️⃣  Generating Episode 1 thumbnail using template..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     --template demo_podcast_thumb \
     --keys "$DEMO_DIR/episode1_keys.json" \
     --dump-job > "$DEMO_DIR/episode1_job.json"
@@ -167,7 +167,7 @@ cat "$DEMO_DIR/episode1_job.json"
 echo ""
 
 echo "7️⃣  Actually generating Episode 1 thumbnail..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     --template demo_podcast_thumb \
     --keys "$DEMO_DIR/episode1_keys.json"
 
@@ -184,7 +184,7 @@ echo "=========================================="
 echo ""
 
 echo "8️⃣  Testing different guest for same episode..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     --template demo_podcast_thumb \
     --keys "$DEMO_DIR/episode1_keys.json" \
     --var guest_name="Prof. John Doe" \
@@ -226,7 +226,7 @@ echo "📄 Created base_keys.json and episode2_keys.json"
 echo ""
 
 echo "🔟 Generating Episode 2 with multiple keys files..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     --template demo_podcast_thumb \
     --keys "$DEMO_DIR/base_keys.json" \
     --keys "$DEMO_DIR/episode2_keys.json" \
@@ -245,12 +245,12 @@ echo "=========================================="
 echo ""
 
 echo "1️⃣1️⃣  Listing all templates..."
-uv run python -m gemini_imagen.cli.main template list
+uv run imagen template list
 
 echo ""
 
 echo "1️⃣2️⃣  Getting template path..."
-TEMPLATE_PATH=$(uv run python -m gemini_imagen.cli.main template path demo_podcast_thumb)
+TEMPLATE_PATH=$(uv run imagen template path demo_podcast_thumb)
 echo "Template location: $TEMPLATE_PATH"
 echo ""
 
@@ -278,7 +278,7 @@ echo "📄 Custom system prompt created"
 echo ""
 
 echo "1️⃣4️⃣  Generating with custom system prompt from file..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     --template demo_podcast_thumb \
     --keys "$DEMO_DIR/episode1_keys.json" \
     -s "@$DEMO_DIR/custom_system.txt" \
@@ -297,7 +297,7 @@ echo "=========================================="
 echo ""
 
 echo "1️⃣5️⃣  Generating with JSON output..."
-uv run python -m gemini_imagen.cli.main generate \
+uv run imagen generate \
     "Quick test thumbnail" \
     -o "$DEMO_DIR/demo_json_test.png" \
     --json > "$DEMO_DIR/output.json"

@@ -364,7 +364,7 @@ def generate(
             sys.exit(1)
 
         # Get model (from final_job or config)
-        model_name = final_job.pop("model", None) or cfg.get_default_model()
+        model_name = final_job.pop("model", None) or cfg.get_generation_model()
 
         # Get tracing setting (from final_job or config)
         trace_enabled = final_job.pop("trace", None)

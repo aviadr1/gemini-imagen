@@ -152,8 +152,49 @@ class Config:
         return self.get("langsmith_project", env_var="LANGSMITH_PROJECT")
 
     def get_default_model(self) -> str:
-        """Get default model name."""
-        return self.get("default_model", default="gemini-2.0-flash-exp")
+        """
+        Get default model name (deprecated - use get_generation_model or get_analysis_model).
+
+        This method is deprecated because different tasks require different models.
+        Use get_generation_model() for image generation tasks and get_analysis_model()
+        for image understanding/analysis tasks.
+
+        Returns:
+            Default model name (gemini-2.5-flash-image)
+        """
+        return self.get("default_model", default="gemini-2.5-flash-image")
+
+    def get_generation_model(self) -> str:
+        """
+        Get model for image generation tasks.
+
+        Image generation requires models that support image output modalities.
+        This method checks in order:
+        1. generation_model config value
+        2. default_model config value
+        3. Hardcoded default: gemini-2.5-flash-image
+
+        Returns:
+            Model name to use for image generation
+        """
+        # Try generation_model first, then default_model, then hardcoded default
+        return self.get("generation_model") or self.get("default_model", default="gemini-2.5-flash-image")
+
+    def get_analysis_model(self) -> str:
+        """
+        Get model for image analysis/understanding tasks.
+
+        Image analysis typically uses faster, text-output models that can
+        efficiently process and describe images. This method checks in order:
+        1. analysis_model config value
+        2. default_model config value
+        3. Hardcoded default: gemini-2.0-flash
+
+        Returns:
+            Model name to use for image analysis
+        """
+        # Try analysis_model first, then default_model, then hardcoded default
+        return self.get("analysis_model") or self.get("default_model", default="gemini-2.0-flash")
 
     def get_langsmith_tracing(self) -> bool:
         """Get LangSmith tracing enabled status."""
