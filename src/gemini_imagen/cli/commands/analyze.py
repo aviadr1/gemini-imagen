@@ -4,6 +4,7 @@ Analyze command for gemini-imagen CLI.
 Analyzes and describes images using Google Gemini.
 """
 
+import asyncio
 import sys
 
 import click
@@ -127,11 +128,13 @@ def analyze(
         )
 
         # Analyze
-        result = generator.generate(
-            prompt=prompt,
-            input_images=[image_path],
-            output_text=True,
-            tags=list(tags) if tags else None,
+        result = asyncio.run(
+            generator.generate(
+                prompt=prompt,
+                input_images=[image_path],
+                output_text=True,
+                tags=list(tags) if tags else None,
+            )
         )
 
         # Clear progress

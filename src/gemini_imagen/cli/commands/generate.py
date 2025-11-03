@@ -4,6 +4,7 @@ Generate command for gemini-imagen CLI.
 Generates images from text prompts.
 """
 
+import asyncio
 import json
 import logging
 import sys
@@ -383,7 +384,7 @@ def generate(
 
         # Generate (final_job now only contains library params)
         logger.debug(f"Calling generator.generate() with: {list(final_job.keys())}")
-        result = generator.generate(**final_job)
+        result = asyncio.run(generator.generate(**final_job))
 
         # Clear progress
         if not json_mode:

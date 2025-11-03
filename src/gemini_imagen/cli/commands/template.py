@@ -15,7 +15,6 @@ from ..templates import (
     list_templates,
     load_template,
     save_template,
-    template_exists,
 )
 from ..utils import echo_error, echo_info, echo_success, output_json
 from ..variable_substitution import find_template_variables

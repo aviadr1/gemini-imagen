@@ -4,6 +4,7 @@ Edit command for gemini-imagen CLI.
 Edits images using reference images and prompts.
 """
 
+import asyncio
 import sys
 
 import click
@@ -193,7 +194,7 @@ def edit(
             gen_params["tags"] = list(tags)
 
         # Generate
-        result = generator.generate(**gen_params)
+        result = asyncio.run(generator.generate(**gen_params))
 
         # Clear progress
         if not json_mode:
