@@ -52,7 +52,17 @@ from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from .constants import DEFAULT_GENERATION_MODEL
+from .constants import (
+    DEFAULT_GENERATION_MODEL,
+    ENV_AWS_ACCESS_KEY_ID,
+    ENV_AWS_SECRET_ACCESS_KEY,
+    ENV_AWS_STORAGE_BUCKET_NAME,
+    ENV_GEMINI_API_KEY,
+    ENV_GOOGLE_API_KEY,
+    ENV_GV_AWS_ACCESS_KEY_ID,
+    ENV_GV_AWS_SECRET_ACCESS_KEY,
+    ENV_GV_AWS_STORAGE_BUCKET_NAME,
+)
 from .models import GenerateParams
 from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
@@ -252,11 +262,11 @@ class GeminiImageGenerator:
             The image model (gemini-2.5-flash-image) does not support structured output.
             Requests for JSON schemas will be ignored by the API.
         """
-        api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        api_key = api_key or os.getenv(ENV_GOOGLE_API_KEY) or os.getenv(ENV_GEMINI_API_KEY)
 
         if not api_key:
             raise ValueError(
-                "No API key found. Set GOOGLE_API_KEY or GEMINI_API_KEY environment variable, "
+                f"No API key found. Set {ENV_GOOGLE_API_KEY} or {ENV_GEMINI_API_KEY} environment variable, "
                 "or pass api_key parameter."
             )
 
@@ -266,17 +276,19 @@ class GeminiImageGenerator:
 
         # Store AWS credentials for S3 operations
         self.aws_access_key_id = (
-            aws_access_key_id or os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+            aws_access_key_id
+            or os.getenv(ENV_GV_AWS_ACCESS_KEY_ID)
+            or os.getenv(ENV_AWS_ACCESS_KEY_ID)
         )
         self.aws_secret_access_key = (
             aws_secret_access_key
-            or os.getenv("GV_AWS_SECRET_ACCESS_KEY")
-            or os.getenv("AWS_SECRET_ACCESS_KEY")
+            or os.getenv(ENV_GV_AWS_SECRET_ACCESS_KEY)
+            or os.getenv(ENV_AWS_SECRET_ACCESS_KEY)
         )
         self.aws_storage_bucket_name = (
             aws_storage_bucket_name
-            or os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
-            or os.getenv("AWS_STORAGE_BUCKET_NAME")
+            or os.getenv(ENV_GV_AWS_STORAGE_BUCKET_NAME)
+            or os.getenv(ENV_AWS_STORAGE_BUCKET_NAME)
         )
         self.aws_region = aws_region
 
@@ -299,10 +311,10 @@ class GeminiImageGenerator:
         import os
 
         if api_key is None:
-            api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            api_key = os.getenv(ENV_GOOGLE_API_KEY) or os.getenv(ENV_GEMINI_API_KEY)
             if not api_key:
                 raise ValueError(
-                    "API key required. Set GOOGLE_API_KEY environment variable or pass api_key parameter."
+                    f"API key required. Set {ENV_GOOGLE_API_KEY} environment variable or pass api_key parameter."
                 )
 
         client = genai.Client(api_key=api_key)

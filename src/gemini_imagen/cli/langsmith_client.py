@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..constants import ENV_LANGSMITH_API_KEY
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +27,7 @@ def get_langsmith_api_key() -> str | None:
     Environment Variables:
         LANGSMITH_API_KEY: LangSmith API key
     """
-    return os.environ.get("LANGSMITH_API_KEY")
+    return os.environ.get(ENV_LANGSMITH_API_KEY)
 
 
 def parse_trace_url(url: str) -> tuple[str | None, str] | None:

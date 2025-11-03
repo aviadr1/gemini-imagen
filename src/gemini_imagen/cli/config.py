@@ -14,7 +14,26 @@ from typing import Any
 
 import yaml
 
-from ..constants import DEFAULT_ANALYSIS_MODEL, DEFAULT_GENERATION_MODEL
+from ..constants import (
+    CONFIG_KEY_AWS_ACCESS_KEY_ID,
+    CONFIG_KEY_AWS_SECRET_ACCESS_KEY,
+    CONFIG_KEY_AWS_STORAGE_BUCKET_NAME,
+    CONFIG_KEY_DEFAULT_MODEL,
+    CONFIG_KEY_GOOGLE_API_KEY,
+    CONFIG_KEY_LANGSMITH_API_KEY,
+    CONFIG_KEY_LANGSMITH_PROJECT,
+    CONFIG_KEY_LANGSMITH_TRACING,
+    DEFAULT_ANALYSIS_MODEL,
+    DEFAULT_GENERATION_MODEL,
+    ENV_GEMINI_API_KEY,
+    ENV_GOOGLE_API_KEY,
+    ENV_GV_AWS_ACCESS_KEY_ID,
+    ENV_GV_AWS_SECRET_ACCESS_KEY,
+    ENV_GV_AWS_STORAGE_BUCKET_NAME,
+    ENV_LANGSMITH_API_KEY,
+    ENV_LANGSMITH_PROJECT,
+    ENV_LANGSMITH_TRACING,
+)
 
 
 class Config:
@@ -129,29 +148,29 @@ class Config:
     def get_google_api_key(self) -> str | None:
         """Get Google API key from config or environment."""
         return self.get(
-            "google_api_key",
-            env_var="GOOGLE_API_KEY",
-        ) or self.get("google_api_key", env_var="GEMINI_API_KEY")
+            CONFIG_KEY_GOOGLE_API_KEY,
+            env_var=ENV_GOOGLE_API_KEY,
+        ) or self.get(CONFIG_KEY_GOOGLE_API_KEY, env_var=ENV_GEMINI_API_KEY)
 
     def get_aws_access_key_id(self) -> str | None:
         """Get AWS access key ID from config or environment."""
-        return self.get("aws_access_key_id", env_var="GV_AWS_ACCESS_KEY_ID")
+        return self.get(CONFIG_KEY_AWS_ACCESS_KEY_ID, env_var=ENV_GV_AWS_ACCESS_KEY_ID)
 
     def get_aws_secret_access_key(self) -> str | None:
         """Get AWS secret access key from config or environment."""
-        return self.get("aws_secret_access_key", env_var="GV_AWS_SECRET_ACCESS_KEY")
+        return self.get(CONFIG_KEY_AWS_SECRET_ACCESS_KEY, env_var=ENV_GV_AWS_SECRET_ACCESS_KEY)
 
     def get_aws_bucket_name(self) -> str | None:
         """Get AWS S3 bucket name from config or environment."""
-        return self.get("aws_storage_bucket_name", env_var="GV_AWS_STORAGE_BUCKET_NAME")
+        return self.get(CONFIG_KEY_AWS_STORAGE_BUCKET_NAME, env_var=ENV_GV_AWS_STORAGE_BUCKET_NAME)
 
     def get_langsmith_api_key(self) -> str | None:
         """Get LangSmith API key from config or environment."""
-        return self.get("langsmith_api_key", env_var="LANGSMITH_API_KEY")
+        return self.get(CONFIG_KEY_LANGSMITH_API_KEY, env_var=ENV_LANGSMITH_API_KEY)
 
     def get_langsmith_project(self) -> str | None:
         """Get LangSmith project name from config or environment."""
-        return self.get("langsmith_project", env_var="LANGSMITH_PROJECT")
+        return self.get(CONFIG_KEY_LANGSMITH_PROJECT, env_var=ENV_LANGSMITH_PROJECT)
 
     def get_default_model(self) -> str:
         """
@@ -164,7 +183,7 @@ class Config:
         Returns:
             Default model name
         """
-        return self.get("default_model", default=DEFAULT_GENERATION_MODEL)
+        return self.get(CONFIG_KEY_DEFAULT_MODEL, default=DEFAULT_GENERATION_MODEL)
 
     def get_generation_model(self) -> str:
         """
@@ -181,7 +200,7 @@ class Config:
         """
         # Try generation_model first, then default_model, then hardcoded default
         return self.get("generation_model") or self.get(
-            "default_model", default=DEFAULT_GENERATION_MODEL
+            CONFIG_KEY_DEFAULT_MODEL, default=DEFAULT_GENERATION_MODEL
         )
 
     def get_analysis_model(self) -> str:
@@ -199,12 +218,12 @@ class Config:
         """
         # Try analysis_model first, then default_model, then hardcoded default
         return self.get("analysis_model") or self.get(
-            "default_model", default=DEFAULT_ANALYSIS_MODEL
+            CONFIG_KEY_DEFAULT_MODEL, default=DEFAULT_ANALYSIS_MODEL
         )
 
     def get_langsmith_tracing(self) -> bool:
         """Get LangSmith tracing enabled status."""
-        value = self.get("langsmith_tracing", default=False, env_var="LANGSMITH_TRACING")
+        value = self.get(CONFIG_KEY_LANGSMITH_TRACING, default=False, env_var=ENV_LANGSMITH_TRACING)
         if isinstance(value, str):
             return value.lower() in ("true", "1", "yes", "on")
         return bool(value)
