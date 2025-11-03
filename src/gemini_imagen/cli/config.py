@@ -15,6 +15,7 @@ from typing import Any
 import yaml
 
 from ..constants import (
+    CONFIG_KEY_ASPECT_RATIO,
     CONFIG_KEY_AWS_ACCESS_KEY_ID,
     CONFIG_KEY_AWS_SECRET_ACCESS_KEY,
     CONFIG_KEY_AWS_STORAGE_BUCKET_NAME,
@@ -23,6 +24,8 @@ from ..constants import (
     CONFIG_KEY_LANGSMITH_API_KEY,
     CONFIG_KEY_LANGSMITH_PROJECT,
     CONFIG_KEY_LANGSMITH_TRACING,
+    CONFIG_KEY_SAFETY_SETTINGS,
+    CONFIG_KEY_TEMPERATURE,
     DEFAULT_ANALYSIS_MODEL,
     DEFAULT_GENERATION_MODEL,
     ENV_GEMINI_API_KEY,
@@ -227,6 +230,23 @@ class Config:
         if isinstance(value, str):
             return value.lower() in ("true", "1", "yes", "on")
         return bool(value)
+
+    def get_temperature(self) -> float | None:
+        """Get default temperature from config."""
+        return self.get(CONFIG_KEY_TEMPERATURE)
+
+    def get_aspect_ratio(self) -> str | None:
+        """Get default aspect ratio from config."""
+        return self.get(CONFIG_KEY_ASPECT_RATIO)
+
+    def get_safety_settings(self) -> list[dict[str, Any]] | None:
+        """
+        Get default safety settings from config.
+
+        Returns a list of dicts with 'category' and 'threshold' keys
+        that can be converted to SafetySetting objects.
+        """
+        return self.get(CONFIG_KEY_SAFETY_SETTINGS)
 
 
 # Global config instance

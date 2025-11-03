@@ -6,6 +6,13 @@ Provides commands to view and modify configuration.
 
 import click
 
+from ...constants import (
+    CONFIG_KEY_LANGSMITH_TRACING,
+    CONFIG_KEY_SAFETY_SETTINGS,
+    CONFIG_KEY_TEMPERATURE,
+    SAFETY_PRESETS,
+    HarmCategory,
+)
 from ..config import get_config
 from ..utils import echo_error, echo_info, echo_success, output_json
 
@@ -33,19 +40,65 @@ def config_set(key: str, value: str) -> None:
         langsmith_project           - LangSmith project name
         langsmith_tracing           - Enable LangSmith tracing (true/false)
         default_model               - Default model to use
+        temperature                 - Default temperature (0.0-1.0)
+        aspect_ratio                - Default aspect ratio (e.g., "16:9", "1:1")
+        safety_settings             - Default safety preset (strict/default/relaxed/none)
 
     \b
     Examples:
         imagen config set default_model gemini-2.0-flash-exp
         imagen config set langsmith_tracing true
-        imagen config set aws_storage_bucket_name my-bucket
+        imagen config set temperature 0.8
+        imagen config set aspect_ratio 16:9
+        imagen config set safety_settings relaxed
     """
     cfg = get_config()
 
-    # Convert string booleans
-    parsed_value: str | bool = value
-    if value.lower() in ("true", "false"):
+    # Special handling for different key types
+    parsed_value: str | bool | float | list[dict[str, str]]
+
+    # Boolean values
+    if key == CONFIG_KEY_LANGSMITH_TRACING and value.lower() in ("true", "false"):
         parsed_value = value.lower() == "true"
+
+    # Float values
+    elif key == CONFIG_KEY_TEMPERATURE:
+        try:
+            parsed_value = float(value)
+            if not (0.0 <= parsed_value <= 1.0):
+                echo_error("Temperature must be between 0.0 and 1.0")
+                raise click.exceptions.Exit(1)
+        except ValueError:
+            echo_error(f"Invalid temperature value: {value}")
+            raise click.exceptions.Exit(1)
+
+    # Safety settings presets
+    elif key == CONFIG_KEY_SAFETY_SETTINGS:
+        preset = value.lower()
+        if preset not in SAFETY_PRESETS:
+            echo_error(
+                f"Invalid safety preset: {value}. Valid values: {', '.join(SAFETY_PRESETS.keys())}"
+            )
+            raise click.exceptions.Exit(1)
+
+        threshold = SAFETY_PRESETS[preset]
+        # Store as list of dicts that can be serialized to YAML
+        parsed_value = [
+            {
+                "category": cat,
+                "threshold": str(threshold),
+            }
+            for cat in [
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                HarmCategory.HARM_CATEGORY_HARASSMENT,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            ]
+        ]
+
+    # String values (default)
+    else:
+        parsed_value = value
 
     cfg.set(key, parsed_value)
     echo_success(f"Set {key} = {value}")

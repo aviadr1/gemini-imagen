@@ -134,6 +134,43 @@ except ValueError as e:
 
 You can customize safety filtering thresholds to control which content is blocked. This is useful when you need more or less restrictive filtering for your use case.
 
+### CLI Usage
+
+#### Setting Global Defaults
+
+Set a global safety preset that applies to all generations:
+
+```bash
+# Relaxed filtering (only blocks high-probability harmful content)
+imagen config set safety_settings relaxed
+
+# Strict filtering (blocks low, medium, and high probability)
+imagen config set safety_settings strict
+
+# Default filtering (blocks medium and high probability)
+imagen config set safety_settings default
+
+# Minimal filtering
+imagen config set safety_settings none
+```
+
+#### Per-Generation Override
+
+Override safety settings for a specific generation:
+
+```bash
+# Use a preset for all categories
+imagen generate "prompt" -o output.png --safety-setting preset:relaxed
+
+# Set specific category threshold
+imagen generate "prompt" -o output.png --safety-setting SEXUALLY_EXPLICIT:BLOCK_ONLY_HIGH
+
+# Combine multiple settings
+imagen generate "prompt" -o output.png \
+  --safety-setting SEXUALLY_EXPLICIT:BLOCK_ONLY_HIGH \
+  --safety-setting DANGEROUS_CONTENT:BLOCK_LOW_AND_ABOVE
+```
+
 ### Available Safety Categories
 
 - `HARM_CATEGORY_SEXUALLY_EXPLICIT` - Sexually explicit content

@@ -13,6 +13,7 @@ from typing import Any
 
 import click
 
+from ...constants import SAFETY_PRESETS, HarmBlockThreshold, HarmCategory, SafetySetting
 from ...gemini_image_wrapper import GeminiImageGenerator
 from ...models import GenerateParams, ImageSource
 from ..config import get_config
@@ -33,6 +34,79 @@ from ..utils import (
 from ..variable_substitution import substitute_variables, validate_variables
 
 logger = logging.getLogger(__name__)
+
+
+def parse_safety_setting(setting_str: str) -> list[SafetySetting]:
+    """
+    Parse a safety setting string into a list of SafetySetting objects.
+
+    Formats supported:
+    - preset:THRESHOLD (e.g., "preset:relaxed")
+    - CATEGORY:THRESHOLD (e.g., "SEXUALLY_EXPLICIT:BLOCK_ONLY_HIGH")
+
+    Args:
+        setting_str: Safety setting string
+
+    Returns:
+        List of SafetySetting objects
+
+    Raises:
+        ValueError: If format is invalid
+    """
+    if ":" not in setting_str:
+        raise ValueError(
+            f"Invalid safety setting format: {setting_str}. "
+            "Use CATEGORY:THRESHOLD or preset:THRESHOLD"
+        )
+
+    category_part, threshold_part = setting_str.split(":", 1)
+
+    # Parse threshold
+    threshold: Any
+    if threshold_part.upper() in SAFETY_PRESETS:
+        threshold = SAFETY_PRESETS[threshold_part.lower()]
+    else:
+        # Try to get enum by name
+        threshold_name = (
+            threshold_part if threshold_part.startswith("BLOCK_") else f"BLOCK_{threshold_part}"
+        )
+        try:
+            threshold = getattr(HarmBlockThreshold, threshold_name)
+        except AttributeError:
+            raise ValueError(
+                f"Invalid threshold: {threshold_part}. "
+                f"Valid values: {', '.join(SAFETY_PRESETS.keys())}, "
+                "BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE"
+            )
+
+    # Parse category
+    if category_part.lower() == "preset":
+        # Apply to all categories
+        return [
+            SafetySetting(category=cat, threshold=threshold)
+            for cat in [
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                HarmCategory.HARM_CATEGORY_HARASSMENT,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            ]
+        ]
+    else:
+        # Specific category
+        category_name = (
+            category_part
+            if category_part.startswith("HARM_CATEGORY_")
+            else f"HARM_CATEGORY_{category_part}"
+        )
+        try:
+            category = getattr(HarmCategory, category_name)
+        except AttributeError:
+            raise ValueError(
+                f"Invalid category: {category_part}. "
+                "Valid values: SEXUALLY_EXPLICIT, DANGEROUS_CONTENT, HARASSMENT, HATE_SPEECH, CIVIC_INTEGRITY"
+            )
+
+        return [SafetySetting(category=category, threshold=threshold)]
 
 
 @click.command()
@@ -117,6 +191,16 @@ logger = logging.getLogger(__name__)
     help="Tag for LangSmith tracing (can be specified multiple times)",
 )
 @click.option(
+    "--safety-setting",
+    "safety_settings",
+    multiple=True,
+    help=(
+        "Safety filtering threshold. Format: CATEGORY:THRESHOLD or preset:THRESHOLD. "
+        "Presets: strict, default, relaxed, none. "
+        "Example: --safety-setting preset:relaxed or --safety-setting SEXUALLY_EXPLICIT:BLOCK_ONLY_HIGH"
+    ),
+)
+@click.option(
     "--json",
     "json_mode",
     is_flag=True,
@@ -139,6 +223,7 @@ def generate(
     aspect_ratio: str | None,
     trace: bool | None,
     tags: tuple[str, ...],
+    safety_settings: tuple[str, ...],
     json_mode: bool,
 ) -> None:
     """
@@ -189,6 +274,8 @@ def generate(
         - Input images can be local paths, S3 URIs, or HTTP URLs
         - Output can be local path or S3 URI
         - Use --label to provide context for each input image
+        - Set global defaults with: imagen config set KEY VALUE
+        - Supported config defaults: temperature, aspect_ratio, safety_settings
     """
     try:
         logger.info("Starting generate command with template/keys system")
@@ -282,6 +369,18 @@ def generate(
         if tags:
             cli_overrides["tags"] = list(tags)
 
+        # Parse safety settings
+        if safety_settings:
+            parsed_settings: list[SafetySetting] = []
+            for setting_str in safety_settings:
+                try:
+                    settings_list = parse_safety_setting(setting_str)
+                    parsed_settings.extend(settings_list)
+                except ValueError as e:
+                    echo_error(str(e), json_mode=json_mode)
+                    sys.exit(1)
+            cli_overrides["safety_settings"] = parsed_settings
+
         # Add --var variables to CLI overrides
         cli_overrides.update(var_dict)
 
@@ -372,6 +471,25 @@ def generate(
         trace_enabled = final_job.pop("trace", None)
         if trace_enabled is None:
             trace_enabled = cfg.get_langsmith_tracing()
+
+        # Apply config defaults for parameters not specified
+        if "temperature" not in final_job and cfg.get_temperature() is not None:
+            final_job["temperature"] = cfg.get_temperature()
+
+        if "aspect_ratio" not in final_job and cfg.get_aspect_ratio() is not None:
+            final_job["aspect_ratio"] = cfg.get_aspect_ratio()
+
+        if "safety_settings" not in final_job and cfg.get_safety_settings() is not None:
+            # Convert config safety settings (list of dicts) to SafetySetting objects
+            config_safety = cfg.get_safety_settings()
+            if config_safety:
+                final_job["safety_settings"] = [
+                    SafetySetting(
+                        category=getattr(HarmCategory, s["category"]),
+                        threshold=getattr(HarmBlockThreshold, s["threshold"]),
+                    )
+                    for s in config_safety
+                ]
 
         # Show progress
         if not json_mode:

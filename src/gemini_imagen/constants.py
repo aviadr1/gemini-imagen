@@ -5,6 +5,8 @@ This module defines constants used throughout the library to avoid magic strings
 and ensure consistency.
 """
 
+from google.genai import types
+
 # Model constants
 # Gemini models for different use cases
 
@@ -39,3 +41,20 @@ CONFIG_KEY_LANGSMITH_API_KEY = "langsmith_api_key"
 CONFIG_KEY_LANGSMITH_PROJECT = "langsmith_project"
 CONFIG_KEY_LANGSMITH_TRACING = "langsmith_tracing"
 CONFIG_KEY_DEFAULT_MODEL = "default_model"
+CONFIG_KEY_TEMPERATURE = "temperature"
+CONFIG_KEY_ASPECT_RATIO = "aspect_ratio"
+CONFIG_KEY_SAFETY_SETTINGS = "safety_settings"
+
+# Safety setting shortcuts for CLI
+# Maps user-friendly names to HarmBlockThreshold enum values
+SAFETY_PRESETS = {
+    "strict": types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    "default": types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    "relaxed": types.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    "none": types.HarmBlockThreshold.BLOCK_NONE,
+}
+
+# Re-export enums for convenience
+HarmCategory = types.HarmCategory
+HarmBlockThreshold = types.HarmBlockThreshold
+SafetySetting = types.SafetySetting

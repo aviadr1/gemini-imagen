@@ -36,7 +36,7 @@ def deep_merge(base: dict[str, Any], *overlays: dict[str, Any]) -> dict[str, Any
     result = deepcopy(base)
 
     for i, overlay in enumerate(overlays):
-        logger.debug(f"Merging overlay {i+1}/{len(overlays)} with {len(overlay)} keys")
+        logger.debug(f"Merging overlay {i + 1}/{len(overlays)} with {len(overlay)} keys")
         result = _merge_two_dicts(result, overlay)
 
     logger.info(f"Merge complete: result has {len(result)} top-level keys")
@@ -163,7 +163,7 @@ def merge_template_keys_overrides(
     if keys:
         logger.debug(f"Merging {len(keys)} keys file(s)")
         for i, keys_dict in enumerate(keys):
-            logger.debug(f"Merging keys file {i+1}/{len(keys)} with {len(keys_dict)} keys")
+            logger.debug(f"Merging keys file {i + 1}/{len(keys)} with {len(keys_dict)} keys")
             result = deep_merge(result, keys_dict)
     else:
         logger.debug("No keys files provided")
