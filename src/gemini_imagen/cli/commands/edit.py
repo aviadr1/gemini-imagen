@@ -10,13 +10,13 @@ import sys
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
+from ...models import GenerateParams
 from ..config import get_config
 from ..utils import (
     clear_progress,
     echo_error,
     echo_info,
     echo_success,
-    filter_none_values,
     format_api_error,
     get_prompt_from_args_or_stdin,
     output_json,
@@ -178,21 +178,18 @@ def edit(
             log_images=trace,
         )
 
-        # Build generation parameters
-        gen_params = {
-            "prompt": prompt_text,
-            "input_images": validated_inputs,
-            "output_images": [output],
-            "temperature": temperature,
-            "aspect_ratio": aspect_ratio,
-            "tags": list(tags) if tags else None,
-        }
-
-        # Filter None values to avoid cluttering LangSmith traces
-        gen_params_clean = filter_none_values(gen_params)
+        # Build generation parameters using Pydantic model for type safety
+        params = GenerateParams(
+            prompt=prompt_text,
+            input_images=validated_inputs,
+            output_images=[output],
+            temperature=temperature,
+            aspect_ratio=aspect_ratio,
+            tags=list(tags) if tags else None,
+        )
 
         # Generate
-        result = asyncio.run(generator.generate(**gen_params_clean))
+        result = asyncio.run(generator.generate(params))
 
         # Clear progress
         if not json_mode:

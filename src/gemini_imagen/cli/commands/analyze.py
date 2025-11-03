@@ -10,11 +10,11 @@ import sys
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
+from ...models import GenerateParams
 from ..config import get_config
 from ..utils import (
     clear_progress,
     echo_error,
-    filter_none_values,
     format_api_error,
     output_json,
     show_progress,
@@ -128,14 +128,14 @@ def analyze(
             log_images=trace,
         )
 
-        # Analyze - filter None values to avoid cluttering LangSmith traces
-        analyze_params = filter_none_values({
-            "prompt": prompt,
-            "input_images": [image_path],
-            "output_text": True,
-            "tags": list(tags) if tags else None,
-        })
-        result = asyncio.run(generator.generate(**analyze_params))
+        # Analyze - use Pydantic model for type safety and automatic None filtering
+        params = GenerateParams(
+            prompt=prompt,
+            input_images=[image_path],
+            output_text=True,
+            tags=list(tags) if tags else None,
+        )
+        result = asyncio.run(generator.generate(params))
 
         # Clear progress
         if not json_mode:

@@ -93,11 +93,13 @@ class TestGenerateCommandWide:
                     log_images=False,
                 )
 
-                # Verify async generate was called
+                # Verify async generate was called with Pydantic model
                 mock_generator_instance.generate.assert_called_once()
-                call_kwargs = mock_generator_instance.generate.call_args[1]
-                assert call_kwargs["prompt"] == "a serene landscape"
-                assert call_kwargs["output_images"] == [output_path]
+                call_args = mock_generator_instance.generate.call_args[0]
+                assert len(call_args) == 1  # Should be called with one positional arg (the Pydantic model)
+                params = call_args[0]
+                assert params.prompt == "a serene landscape"
+                assert params.output_images == [output_path]
 
         finally:
             Path(output_path).unlink(missing_ok=True)
@@ -159,13 +161,14 @@ class TestGenerateCommandWide:
                 assert result.exit_code == 0, f"Command failed: {result.output}"
                 assert "'coroutine' object" not in result.output
 
-                # Verify all options were passed correctly
-                call_kwargs = mock_generator_instance.generate.call_args[1]
-                assert call_kwargs["prompt"] == "test prompt"
-                assert call_kwargs["temperature"] == 0.8
-                assert call_kwargs["aspect_ratio"] == "16:9"
-                assert call_kwargs["tags"] == ["test", "wide"]
-                assert input_path in str(call_kwargs["input_images"])
+                # Verify all options were passed correctly via Pydantic model
+                call_args = mock_generator_instance.generate.call_args[0]
+                params = call_args[0]
+                assert params.prompt == "test prompt"
+                assert params.temperature == 0.8
+                assert params.aspect_ratio == "16:9"
+                assert params.tags == ["test", "wide"]
+                assert input_path in str(params.input_images)
 
         finally:
             Path(output_path).unlink(missing_ok=True)
@@ -289,10 +292,11 @@ class TestAnalyzeCommandWide:
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
 
-                # Verify custom prompt was used
-                call_kwargs = mock_generator_instance.generate.call_args[1]
-                assert call_kwargs["prompt"] == "What colors are in this image?"
-                assert call_kwargs["output_text"] is True
+                # Verify custom prompt was used via Pydantic model
+                call_args = mock_generator_instance.generate.call_args[0]
+                params = call_args[0]
+                assert params.prompt == "What colors are in this image?"
+                assert params.output_text is True
 
         finally:
             Path(image_path).unlink(missing_ok=True)
@@ -428,11 +432,12 @@ class TestTemplateWorkflowWide:
                 assert result.exit_code == 0, f"Generate with template failed: {result.output}"
                 assert "'coroutine' object" not in result.output
 
-                # Verify variable substitution worked
-                call_kwargs = mock_generator_instance.generate.call_args[1]
-                assert call_kwargs["prompt"] == "Test AI for TechTalks"
-                assert call_kwargs["output_images"] == [output_path]
-                assert call_kwargs["temperature"] == 0.7
+                # Verify variable substitution worked via Pydantic model
+                call_args = mock_generator_instance.generate.call_args[0]
+                params = call_args[0]
+                assert params.prompt == "Test AI for TechTalks"
+                assert params.output_images == [output_path]
+                assert params.temperature == 0.7
 
         finally:
             Path(template_path).unlink(missing_ok=True)
@@ -493,9 +498,10 @@ class TestTemplateWorkflowWide:
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
 
-                # Verify override worked (CLI --var should override keys)
-                call_kwargs = mock_generator_instance.generate.call_args[1]
-                assert call_kwargs["prompt"] == "Test Machine Learning for TechTalks"
+                # Verify override worked (CLI --var should override keys) via Pydantic model
+                call_args = mock_generator_instance.generate.call_args[0]
+                params = call_args[0]
+                assert params.prompt == "Test Machine Learning for TechTalks"
 
         finally:
             Path(keys_path).unlink(missing_ok=True)

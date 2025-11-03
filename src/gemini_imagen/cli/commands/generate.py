@@ -13,6 +13,7 @@ from pathlib import Path
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
+from ...models import GenerateParams
 from ..config import get_config
 from ..job_merge import merge_template_keys_overrides, split_job_and_variables
 from ..templates import load_template
@@ -21,7 +22,6 @@ from ..utils import (
     echo_error,
     echo_info,
     echo_success,
-    filter_none_values,
     format_api_error,
     get_prompt_from_args_or_stdin,
     output_json,
@@ -384,10 +384,10 @@ def generate(
         )
 
         # Generate (final_job now only contains library params)
-        # Filter out None values to avoid cluttering LangSmith traces
-        final_job_clean = filter_none_values(final_job)
-        logger.debug(f"Calling generator.generate() with: {list(final_job_clean.keys())}")
-        result = asyncio.run(generator.generate(**final_job_clean))
+        # Use Pydantic model for type safety and automatic None filtering
+        params = GenerateParams(**final_job)
+        logger.debug(f"Calling generator.generate() with: {list(params.model_dump(exclude_none=True).keys())}")
+        result = asyncio.run(generator.generate(params))
 
         # Clear progress
         if not json_mode:

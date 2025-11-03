@@ -53,6 +53,7 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
 from .constants import DEFAULT_GENERATION_MODEL
+from .models import GenerateParams
 from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
 if TYPE_CHECKING:
@@ -331,7 +332,7 @@ class GeminiImageGenerator:
     )
     async def generate(
         self,
-        prompt: str,
+        prompt: str | GenerateParams | None = None,
         system_prompt: str | None = None,
         input_images: list[ImageSource] | None = None,
         temperature: float | None = None,
@@ -346,6 +347,8 @@ class GeminiImageGenerator:
         run_name: str | None = None,
         metadata: dict[str, str] | None = None,  # noqa: ARG002 - used by @traceable decorator
         tags: list[str] | None = None,  # noqa: ARG002 - used by @traceable decorator
+        # For backward compatibility and type checking
+        **kwargs: Any,
     ) -> GenerationResult:
         """
         Unified generation function with support for:
@@ -449,6 +452,22 @@ class GeminiImageGenerator:
                 output_text=True
             )
         """
+        # Handle both Pydantic model and individual parameters
+        if isinstance(prompt, GenerateParams):
+            # Using Pydantic model - extract all parameters
+            params_dict = prompt.model_dump(exclude_none=True)
+            prompt = params_dict.pop("prompt")
+            system_prompt = params_dict.get("system_prompt", system_prompt)
+            input_images = params_dict.get("input_images", input_images)
+            temperature = params_dict.get("temperature", temperature)
+            aspect_ratio = params_dict.get("aspect_ratio", aspect_ratio)
+            safety_settings = params_dict.get("safety_settings", safety_settings)
+            output_images = params_dict.get("output_images", output_images)
+            output_text = params_dict.get("output_text", output_text)
+            run_name = params_dict.get("run_name", run_name)
+            metadata = params_dict.get("metadata", metadata)
+            tags = params_dict.get("tags", tags)
+
         # Set LangSmith run name if provided
         if run_name:
             try:
