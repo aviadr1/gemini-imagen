@@ -26,8 +26,14 @@ from .commands import (
 
 @click.group()
 @click.version_option(version=__version__, prog_name="imagen")
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Enable verbose output (show full error details and stack traces)",
+)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, verbose: bool) -> None:
     """
     Imagen - Google Gemini Image Generation CLI
 
@@ -61,6 +67,9 @@ def cli(ctx: click.Context) -> None:
         # Get JSON output
         imagen analyze image.jpg --json
 
+        # Verbose error output
+        imagen generate "test" -v
+
     \b
     Configuration:
         Config file: ~/.config/imagen/config.yaml
@@ -71,6 +80,9 @@ def cli(ctx: click.Context) -> None:
     """
     # Ensure context object exists
     ctx.ensure_object(dict)
+
+    # Store verbose flag in context for subcommands
+    ctx.obj["verbose"] = verbose
 
     # Check for updates in background (only for standalone installs)
     # This is non-blocking and fails silently

@@ -25,6 +25,7 @@ from ..utils import (
     echo_info,
     echo_success,
     format_api_error,
+    format_brief_error,
     get_prompt_from_args_or_stdin,
     output_json,
     show_progress,
@@ -206,7 +207,9 @@ def parse_safety_setting(setting_str: str) -> list[SafetySetting]:
     is_flag=True,
     help="Output result as JSON",
 )
+@click.pass_context
 def generate(
+    ctx: click.Context,
     prompt: str | None,
     template_name: str | None,
     keys_files: tuple[str, ...],
@@ -560,7 +563,18 @@ def generate(
     except Exception as e:
         if not json_mode:
             clear_progress()
-        error_msg = format_api_error(e)
+
+        # Get verbose flag from context
+        verbose = ctx.obj.get("verbose", False) if ctx.obj else False
+
+        # Format error based on verbosity
+        error_msg = format_api_error(e, verbose=verbose)
         echo_error(error_msg, json_mode=json_mode)
-        logger.exception("Generate command failed")
+
+        # Only log full traceback if verbose
+        if verbose:
+            logger.exception("Generate command failed")
+        else:
+            logger.error(f"Generate command failed: {format_brief_error(e)}")
+
         sys.exit(1)

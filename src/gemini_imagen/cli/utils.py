@@ -235,16 +235,84 @@ def get_prompt_from_args_or_stdin(prompt: str | None) -> str:
     )
 
 
-def format_api_error(error: Exception) -> str:
+def format_brief_error(error: Exception) -> str:
     """
-    Format API error message with helpful hints.
+    Format error message in a brief, user-friendly way.
+
+    Extracts the essential error message without stack traces or verbose details.
 
     Args:
         error: Exception from API call
 
     Returns:
+        Brief error message
+    """
+    error_str = str(error)
+
+    # For ValueError with our custom formatting (like content generation failures),
+    # extract just the first line or key message
+    if "CONTENT GENERATION FAILED" in error_str:
+        lines = error_str.split("\n")
+        # Get the emoji line and the explanation line
+        main_parts = [line for line in lines[:3] if line.strip()]
+        return "\n".join(main_parts)
+
+    # For other errors, just return the main message
+    # Split on newlines and take first meaningful line
+    lines = error_str.split("\n")
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith("{"):  # Skip JSON blocks
+            return line
+
+    return error_str
+
+
+def format_api_error(error: Exception, verbose: bool = False) -> str:
+    """
+    Format API error message with helpful hints.
+
+    Args:
+        error: Exception from API call
+        verbose: If True, include full error details
+
+    Returns:
         Formatted error message
     """
+    if not verbose:
+        # Brief mode: just the essential message
+        brief_msg = format_brief_error(error)
+
+        # Add hints for common issues
+        if "API key" in brief_msg or "authentication" in brief_msg.lower():
+            return (
+                f"{brief_msg}\n\n"
+                "Hint: Set your Google API key with:\n"
+                "  imagen keys set google YOUR_KEY"
+            )
+
+        if "quota" in brief_msg.lower() or "rate limit" in brief_msg.lower():
+            return (
+                f"{brief_msg}\n\n"
+                "Hint: You've hit the API rate limit. Wait and try again.\n"
+                "Run with -v/--verbose for full details."
+            )
+
+        if "bucket" in brief_msg.lower() and "s3" in brief_msg.lower():
+            return (
+                f"{brief_msg}\n\n"
+                "Hint: Configure S3 credentials with:\n"
+                "  imagen keys set aws-access-key YOUR_KEY\n"
+                "Run with -v/--verbose for full details."
+            )
+
+        # Add generic hint to use verbose mode
+        if len(str(error)) > len(brief_msg):
+            return f"{brief_msg}\n\nRun with -v/--verbose for full details."
+
+        return brief_msg
+
+    # Verbose mode: full error details
     error_str = str(error)
 
     # Check for common error patterns
