@@ -168,3 +168,6 @@ langsmith_demo_*.png
 # Test installer artifacts
 .local/
 .config/imagen/
+
+# Auto-generated version file
+src/gemini_imagen/_version.py

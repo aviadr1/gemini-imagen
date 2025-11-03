@@ -76,4 +76,13 @@ __all__ = [
     "upload_to_s3",
 ]
 
-__version__ = "0.6.5"
+try:
+    from ._version import __version__
+except ImportError:
+    # Fallback for development when package is not installed
+    try:
+        from importlib.metadata import version
+
+        __version__ = version("gemini-imagen")
+    except Exception:
+        __version__ = "0.0.0.dev0"

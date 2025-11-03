@@ -614,7 +614,6 @@ wheels = [
 
 [[package]]
 name = "gemini-imagen"
-version = "0.6.3"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -684,7 +683,7 @@ requires-dist = [
     { name = "types-pillow", marker = "extra == 'dev'", specifier = ">=10.0.0" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.0" },
 ]
-provides-extras = ["s3", "dev"]
+provides-extras = ["dev", "s3"]
 
 [package.metadata.requires-dev]
 dev = [

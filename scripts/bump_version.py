@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Bump version in pyproject.toml following semantic versioning.
+DEPRECATED: This script is no longer needed with dynamic versioning.
 
-Usage:
-    uv run python scripts/bump_version.py patch   # 0.1.0 -> 0.1.1
-    uv run python scripts/bump_version.py minor   # 0.1.0 -> 0.2.0
-    uv run python scripts/bump_version.py major   # 0.1.0 -> 1.0.0
-    uv run python scripts/bump_version.py 1.2.3   # Set specific version
+The project now uses hatch-vcs for dynamic versioning from git tags.
+Version is automatically derived from git tags.
+
+Use scripts/release.sh instead to create releases.
 """
 
 import re
@@ -76,50 +75,16 @@ def update_version_in_init(project_root: Path, new_version: str) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print(__doc__)
-        sys.exit(1)
-
-    bump_type = sys.argv[1].lower()
-    if bump_type in ["-h", "--help", "help"]:
-        print(__doc__)
-        sys.exit(0)
-
-    # Validate bump type early
-    if bump_type not in ["patch", "minor", "major"] and not re.match(r"^\d+\.\d+\.\d+$", bump_type):
-        print(f"Error: Invalid version or bump type: {bump_type}")
-        print(__doc__)
-        sys.exit(1)
-
-    # Find pyproject.toml
-    script_dir = Path(__file__).parent
-    project_root = script_dir.parent
-    pyproject_path = project_root / "pyproject.toml"
-
-    if not pyproject_path.exists():
-        print(f"Error: Could not find {pyproject_path}")
-        sys.exit(1)
-
-    # Get current version
-    current_version = get_current_version(pyproject_path)
-    print(f"Current version: {current_version}")
-
-    # Calculate new version
-    try:
-        new_version = bump_version(current_version, bump_type)
-    except ValueError as e:
-        print(f"Error: {e}")
-        print(__doc__)
-        sys.exit(1)
-
-    # Update version in both files
-    update_version_in_pyproject(pyproject_path, new_version)
-    print(f"Updated version in pyproject.toml: {new_version}")
-
-    update_version_in_init(project_root, new_version)
-
-    print(f"\n✓ Version successfully updated to {new_version}")
-    print("Note: This is typically called by release.sh, not directly.")
+    print(__doc__)
+    print("\nThis project now uses dynamic versioning with hatch-vcs.")
+    print("Versions are automatically derived from git tags.")
+    print("\nTo create a new release:")
+    print("  ./scripts/release.sh [patch|minor|major|VERSION]")
+    print("\nExamples:")
+    print("  ./scripts/release.sh          # Bump patch version")
+    print("  ./scripts/release.sh minor    # Bump minor version")
+    print("  ./scripts/release.sh 1.2.3    # Create v1.2.3 release")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
