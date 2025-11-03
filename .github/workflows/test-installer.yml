@@ -30,6 +30,8 @@ jobs:
         run: |
           # Create temp directory for test installation
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           mkdir -p "$HOME"
 
           # Run installer in non-interactive mode
@@ -41,6 +43,8 @@ jobs:
       - name: Verify installation
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           export PATH="$HOME/.local/bin:$PATH"
 
           # Check imagen command exists
@@ -55,6 +59,8 @@ jobs:
       - name: Test self-update check
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           export PATH="$HOME/.local/bin:$PATH"
 
           # Test self-update --check
@@ -81,6 +87,8 @@ jobs:
         run: |
           # Create temp directory for test installation
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           mkdir -p "$HOME"
 
           # Run installer in non-interactive mode
@@ -92,6 +100,8 @@ jobs:
       - name: Verify installation
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           export PATH="$HOME/.local/bin:$PATH"
 
           # Check imagen command exists
@@ -106,6 +116,8 @@ jobs:
       - name: Test self-update check
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           export PATH="$HOME/.local/bin:$PATH"
 
           # Test self-update --check
@@ -189,6 +201,8 @@ jobs:
       - name: Test install.sh wrapper
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           mkdir -p "$HOME"
 
           # Test that script runs without errors
@@ -200,6 +214,8 @@ jobs:
       - name: Verify installation
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           export PATH="$HOME/.local/bin:$PATH"
 
           imagen --version
@@ -224,6 +240,8 @@ jobs:
       - name: Install first
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
           mkdir -p "$HOME"
 
           python3 scripts/install.py <<EOF
@@ -234,6 +252,8 @@ jobs:
       - name: Verify installation exists
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
 
           test -f "$HOME/.local/share/gemini-imagen/bin/python" || exit 1
           test -f "$HOME/.local/bin/imagen" || exit 1
@@ -242,6 +262,8 @@ jobs:
       - name: Run uninstaller
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
 
           python3 scripts/uninstall.py <<EOF
           y
@@ -251,6 +273,8 @@ jobs:
       - name: Verify removal
         run: |
           export HOME="${{runner.temp}}/test-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
 
           # These should not exist after uninstall
           test ! -d "$HOME/.local/share/gemini-imagen" || (echo "venv not removed" && exit 1)

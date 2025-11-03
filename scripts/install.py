@@ -96,13 +96,7 @@ def get_install_paths(os_name: str) -> tuple[Path, Path, Path]:
         Tuple of (venv_dir, wrapper_dir, config_dir)
     """
     # Get home directory - respect HOME env var if set (important for testing)
-    home_from_env = os.environ.get("HOME")
-    home_from_pathlib = str(Path.home())
-    # Debug: print what we're seeing
-    if home_from_env:
-        log_info(f"DEBUG: HOME env var = {home_from_env}")
-    log_info(f"DEBUG: Path.home() = {home_from_pathlib}")
-    home = Path(home_from_env if home_from_env else home_from_pathlib)
+    home = Path(os.environ.get("HOME", str(Path.home())))
 
     if os_name == "windows":
         # Windows paths
@@ -113,14 +107,8 @@ def get_install_paths(os_name: str) -> tuple[Path, Path, Path]:
     else:
         # Unix paths (Linux/macOS)
         # Follow XDG Base Directory specification
-        xdg_data_home = os.environ.get("XDG_DATA_HOME")
-        xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
-        log_info(f"DEBUG: XDG_DATA_HOME = {xdg_data_home}")
-        log_info(f"DEBUG: XDG_CONFIG_HOME = {xdg_config_home}")
-        data_home = Path(xdg_data_home if xdg_data_home else home / ".local" / "share")
-        config_home = Path(xdg_config_home if xdg_config_home else home / ".config")
-        log_info(f"DEBUG: data_home = {data_home}")
-        log_info(f"DEBUG: config_home = {config_home}")
+        data_home = Path(os.environ.get("XDG_DATA_HOME", home / ".local" / "share"))
+        config_home = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 
         venv_dir = data_home / "gemini-imagen"
         wrapper_dir = home / ".local" / "bin"
