@@ -191,12 +191,12 @@ def self_update(check: bool, target_version: str | None) -> None:
 
     # Compare versions
     if latest_version == current_version and not target_version:
-        click.echo("\n✓ Already on latest version!")
+        click.echo("\n[OK] Already on latest version!")
         return
 
     if latest_version < current_version and not target_version:
         click.echo(
-            f"\n⚠ You're running a newer version ({current_version}) than the latest release ({latest_version})"
+            f"\n[WARN] You're running a newer version ({current_version}) than the latest release ({latest_version})"
         )
         if not click.confirm("Continue with downgrade?"):
             return
@@ -204,12 +204,12 @@ def self_update(check: bool, target_version: str | None) -> None:
     # Check only mode
     if check:
         if latest_version != current_version:
-            click.echo(f"\n⚡ Update available: {current_version} → {latest_version}")
+            click.echo(f"\n[INFO] Update available: {current_version} -> {latest_version}")
             click.echo("Run 'imagen self-update' to install")
         return
 
     # Confirm update
-    click.echo(f"\nUpdate: {current_version} → {latest_version}")
+    click.echo(f"\nUpdate: {current_version} -> {latest_version}")
     if not click.confirm("Continue?", default=True):
         click.echo("Update cancelled")
         return
@@ -237,7 +237,7 @@ def self_update(check: bool, target_version: str | None) -> None:
     click.echo("\nUpdating...")
 
     if not update_package(venv_python, target_version or latest_version):
-        click.echo("\n✗ Update failed", err=True)
+        click.echo("\n[ERROR] Update failed", err=True)
         sys.exit(1)
 
     # Update install receipt
@@ -245,7 +245,7 @@ def self_update(check: bool, target_version: str | None) -> None:
     receipt["last_update"] = datetime.utcnow().isoformat() + "Z"
     save_install_receipt(receipt)
 
-    click.echo(f"\n✓ Successfully updated to version {target_version or latest_version}!")
+    click.echo(f"\n[OK] Successfully updated to version {target_version or latest_version}!")
     click.echo("\nRestart your terminal to use the new version.")
 
 
@@ -279,8 +279,8 @@ def check_for_updates_background() -> None:
         if latest_version and latest_version != __version__:
             # New version available!
             click.echo(
-                f"\n💡 New version available: {latest_version} (current: {__version__})\n"
-                f"   Run 'imagen self-update' to upgrade\n",
+                f"\n[INFO] New version available: {latest_version} (current: {__version__})\n"
+                f"       Run 'imagen self-update' to upgrade\n",
                 err=True,
             )
 
