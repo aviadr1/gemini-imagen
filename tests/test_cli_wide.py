@@ -19,6 +19,7 @@ import pytest
 from click.testing import CliRunner
 
 from gemini_imagen.cli.main import cli
+from gemini_imagen.constants import DEFAULT_ANALYSIS_MODEL, DEFAULT_GENERATION_MODEL
 from gemini_imagen.gemini_image_wrapper import GenerationResult
 
 
@@ -70,7 +71,7 @@ class TestGenerateCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -87,7 +88,7 @@ class TestGenerateCommandWide:
 
                 # Verify correct model was used
                 mock_generator_class.assert_called_once_with(
-                    model_name="gemini-2.5-flash-image",
+                    model_name=DEFAULT_GENERATION_MODEL,
                     api_key="test-api-key",
                     log_images=False,
                 )
@@ -130,7 +131,7 @@ class TestGenerateCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -187,7 +188,7 @@ class TestGenerateCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -202,7 +203,7 @@ class TestGenerateCommandWide:
                 output_data = json.loads(result.output)
                 assert output_data["success"] is True
                 assert output_data["image_path"] == mock_generation_result.image_location
-                assert output_data["model"] == "gemini-2.5-flash-image"
+                assert output_data["model"] == DEFAULT_GENERATION_MODEL
 
         finally:
             Path(output_path).unlink(missing_ok=True)
@@ -235,7 +236,7 @@ class TestAnalyzeCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_analysis_model.return_value = "gemini-2.0-flash"
+                mock_cfg.get_analysis_model.return_value = DEFAULT_ANALYSIS_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -247,7 +248,7 @@ class TestAnalyzeCommandWide:
 
                 # Verify correct model was used
                 mock_generator_class.assert_called_once_with(
-                    model_name="gemini-2.0-flash",
+                    model_name=DEFAULT_ANALYSIS_MODEL,
                     api_key="test-api-key",
                     log_images=False,
                 )
@@ -278,7 +279,7 @@ class TestAnalyzeCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_analysis_model.return_value = "gemini-2.0-flash"
+                mock_cfg.get_analysis_model.return_value = DEFAULT_ANALYSIS_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -329,7 +330,7 @@ class TestEditCommandWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -344,7 +345,7 @@ class TestEditCommandWide:
 
                 # Verify correct model was used (edit generates images)
                 mock_generator_class.assert_called_once_with(
-                    model_name="gemini-2.5-flash-image",
+                    model_name=DEFAULT_GENERATION_MODEL,
                     api_key="test-api-key",
                     log_images=False,
                 )
@@ -413,7 +414,7 @@ class TestTemplateWorkflowWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -470,7 +471,7 @@ class TestTemplateWorkflowWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -534,7 +535,7 @@ class TestConfigurationWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_gen_config.return_value = mock_cfg
 
@@ -543,7 +544,7 @@ class TestConfigurationWide:
 
                 # Verify generation model was used
                 mock_gen_class.assert_called_once_with(
-                    model_name="gemini-2.5-flash-image",
+                    model_name=DEFAULT_GENERATION_MODEL,
                     api_key="test-api-key",
                     log_images=False,
                 )
@@ -560,7 +561,7 @@ class TestConfigurationWide:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_analysis_model.return_value = "gemini-2.0-flash"
+                mock_cfg.get_analysis_model.return_value = DEFAULT_ANALYSIS_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_analyze_config.return_value = mock_cfg
 
@@ -569,7 +570,7 @@ class TestConfigurationWide:
 
                 # Verify analysis model was used
                 mock_analyze_class.assert_called_once_with(
-                    model_name="gemini-2.0-flash",
+                    model_name=DEFAULT_ANALYSIS_MODEL,
                     api_key="test-api-key",
                     log_images=False,
                 )

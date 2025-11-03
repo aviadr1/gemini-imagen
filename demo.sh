@@ -14,14 +14,18 @@ echo "Scenario: Podcast Thumbnail Production"
 echo "=========================================="
 echo ""
 
+# Create demo directory with timestamp
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+DEMO_DIR="./imagen_demo_$TIMESTAMP"
+mkdir -p "$DEMO_DIR"
+
 # Cleanup function
 cleanup() {
     echo ""
-    echo "Cleaning up demo files..."
-    rm -f /tmp/demo_*.png /tmp/demo_*.jpg /tmp/demo_*.json /tmp/demo_*.txt
-    if [ -d "$DEMO_DIR" ]; then
-        rm -rf "$DEMO_DIR"
-    fi
+    echo "Demo files are in: $DEMO_DIR"
+    echo "You can delete this directory when done."
+    echo ""
+
     # Clean up test template
     uv run imagen template delete demo_podcast_thumb 2>/dev/null || true
     echo "Cleanup complete."
@@ -29,10 +33,6 @@ cleanup() {
 
 # Set trap to cleanup on exit
 trap cleanup EXIT
-
-# Create demo directory
-DEMO_DIR="/tmp/imagen_demo"
-mkdir -p "$DEMO_DIR"
 
 echo "📁 Working directory: $DEMO_DIR"
 echo "📁 Project directory: $SCRIPT_DIR"

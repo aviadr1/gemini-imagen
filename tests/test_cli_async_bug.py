@@ -12,6 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 from gemini_imagen.cli.main import cli
+from gemini_imagen.constants import DEFAULT_ANALYSIS_MODEL, DEFAULT_GENERATION_MODEL
 from gemini_imagen.gemini_image_wrapper import GenerationResult
 
 
@@ -62,7 +63,7 @@ class TestGenerateCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -127,7 +128,7 @@ class TestGenerateCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -190,7 +191,7 @@ class TestAnalyzeCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_analysis_model.return_value = "gemini-2.0-flash"
+                mock_cfg.get_analysis_model.return_value = DEFAULT_ANALYSIS_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -236,7 +237,7 @@ class TestEditCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
+                mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_config.return_value = mock_cfg
 
                 result = runner.invoke(
