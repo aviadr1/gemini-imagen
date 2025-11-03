@@ -40,6 +40,7 @@ Usage:
 
 import asyncio
 import os
+import warnings
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
@@ -52,10 +53,31 @@ from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
+from .constants import (
+    DEFAULT_GENERATION_MODEL,
+    ENV_AWS_ACCESS_KEY_ID,
+    ENV_AWS_SECRET_ACCESS_KEY,
+    ENV_AWS_STORAGE_BUCKET_NAME,
+    ENV_GEMINI_API_KEY,
+    ENV_GOOGLE_API_KEY,
+    ENV_GV_AWS_ACCESS_KEY_ID,
+    ENV_GV_AWS_SECRET_ACCESS_KEY,
+    ENV_GV_AWS_STORAGE_BUCKET_NAME,
+)
+from .models import GenerateParams
 from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
 if TYPE_CHECKING:
     from langsmith.run_trees import RunTree
+
+# Suppress warnings about new finish reasons not yet in SDK enum
+# This is expected as the API may add new finish reasons before SDK updates
+warnings.filterwarnings(
+    "ignore",
+    message=".*is not a valid FinishReason.*",
+    category=UserWarning,
+    module="google.genai._common",
+)
 
 # Load environment variables
 load_dotenv()
@@ -225,7 +247,7 @@ class GeminiImageGenerator:
 
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-image",
+        model_name: str = DEFAULT_GENERATION_MODEL,
         api_key: str | None = None,
         log_images: bool = True,
         # AWS S3 credentials (optional, defaults to environment variables)
@@ -250,11 +272,11 @@ class GeminiImageGenerator:
             The image model (gemini-2.5-flash-image) does not support structured output.
             Requests for JSON schemas will be ignored by the API.
         """
-        api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        api_key = api_key or os.getenv(ENV_GOOGLE_API_KEY) or os.getenv(ENV_GEMINI_API_KEY)
 
         if not api_key:
             raise ValueError(
-                "No API key found. Set GOOGLE_API_KEY or GEMINI_API_KEY environment variable, "
+                f"No API key found. Set {ENV_GOOGLE_API_KEY} or {ENV_GEMINI_API_KEY} environment variable, "
                 "or pass api_key parameter."
             )
 
@@ -264,17 +286,19 @@ class GeminiImageGenerator:
 
         # Store AWS credentials for S3 operations
         self.aws_access_key_id = (
-            aws_access_key_id or os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+            aws_access_key_id
+            or os.getenv(ENV_GV_AWS_ACCESS_KEY_ID)
+            or os.getenv(ENV_AWS_ACCESS_KEY_ID)
         )
         self.aws_secret_access_key = (
             aws_secret_access_key
-            or os.getenv("GV_AWS_SECRET_ACCESS_KEY")
-            or os.getenv("AWS_SECRET_ACCESS_KEY")
+            or os.getenv(ENV_GV_AWS_SECRET_ACCESS_KEY)
+            or os.getenv(ENV_AWS_SECRET_ACCESS_KEY)
         )
         self.aws_storage_bucket_name = (
             aws_storage_bucket_name
-            or os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
-            or os.getenv("AWS_STORAGE_BUCKET_NAME")
+            or os.getenv(ENV_GV_AWS_STORAGE_BUCKET_NAME)
+            or os.getenv(ENV_AWS_STORAGE_BUCKET_NAME)
         )
         self.aws_region = aws_region
 
@@ -297,10 +321,10 @@ class GeminiImageGenerator:
         import os
 
         if api_key is None:
-            api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            api_key = os.getenv(ENV_GOOGLE_API_KEY) or os.getenv(ENV_GEMINI_API_KEY)
             if not api_key:
                 raise ValueError(
-                    "API key required. Set GOOGLE_API_KEY environment variable or pass api_key parameter."
+                    f"API key required. Set {ENV_GOOGLE_API_KEY} environment variable or pass api_key parameter."
                 )
 
         client = genai.Client(api_key=api_key)
@@ -330,7 +354,7 @@ class GeminiImageGenerator:
     )
     async def generate(
         self,
-        prompt: str,
+        prompt: str | GenerateParams | None = None,
         system_prompt: str | None = None,
         input_images: list[ImageSource] | None = None,
         temperature: float | None = None,
@@ -343,8 +367,8 @@ class GeminiImageGenerator:
         output_text: bool = False,
         # LangSmith configuration
         run_name: str | None = None,
-        metadata: dict[str, str] | None = None,  # noqa: ARG002 - used by @traceable decorator
-        tags: list[str] | None = None,  # noqa: ARG002 - used by @traceable decorator
+        metadata: dict[str, str] | None = None,  # - used by @traceable decorator
+        tags: list[str] | None = None,  # - used by @traceable decorator
     ) -> GenerationResult:
         """
         Unified generation function with support for:
@@ -448,6 +472,25 @@ class GeminiImageGenerator:
                 output_text=True
             )
         """
+        # Handle both Pydantic model and individual parameters
+        if isinstance(prompt, GenerateParams):
+            # Using Pydantic model - extract all parameters
+            params_dict = prompt.model_dump(exclude_none=True)
+            prompt = params_dict.pop("prompt")
+            system_prompt = params_dict.get("system_prompt", system_prompt)
+            input_images = params_dict.get("input_images", input_images)
+            temperature = params_dict.get("temperature", temperature)
+            aspect_ratio = params_dict.get("aspect_ratio", aspect_ratio)
+            safety_settings = params_dict.get("safety_settings", safety_settings)
+            output_images = params_dict.get("output_images", output_images)
+            output_text = params_dict.get("output_text", output_text)
+            run_name = params_dict.get("run_name", run_name)
+            metadata = params_dict.get("metadata", metadata)
+            tags = params_dict.get("tags", tags)
+
+        # Type check: ensure prompt is a string at this point
+        assert isinstance(prompt, str), "prompt must be a string"
+
         # Set LangSmith run name if provided
         if run_name:
             try:
@@ -703,6 +746,13 @@ class GeminiImageGenerator:
             types.FinishReason.MALFORMED_FUNCTION_CALL: "Generation failed - malformed function call",
             types.FinishReason.OTHER: "Generation stopped for unspecified reason",
         }
+
+        # Handle finish reason by string name if not found in enum
+        # This handles new finish reasons like IMAGE_OTHER that may not be in the SDK yet
+        finish_reason_str = str(finish_reason)
+        if "IMAGE_OTHER" in finish_reason_str:
+            return "Image generation completed with alternative format or method"
+
         return interpretations.get(finish_reason, f"Unknown finish reason: {finish_reason}")
 
     def _format_safety_info(

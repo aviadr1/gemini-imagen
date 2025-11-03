@@ -17,6 +17,15 @@ import aiohttp
 from dotenv import load_dotenv
 from PIL import Image
 
+from .constants import (
+    ENV_AWS_ACCESS_KEY_ID,
+    ENV_AWS_SECRET_ACCESS_KEY,
+    ENV_AWS_STORAGE_BUCKET_NAME,
+    ENV_GV_AWS_ACCESS_KEY_ID,
+    ENV_GV_AWS_SECRET_ACCESS_KEY,
+    ENV_GV_AWS_STORAGE_BUCKET_NAME,
+)
+
 # Conditional aiobotocore import
 try:
     from aiobotocore.session import get_session
@@ -53,17 +62,17 @@ def _get_aws_credentials(
         )
 
     access_key = (
-        access_key_id or os.getenv("GV_AWS_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID")
+        access_key_id or os.getenv(ENV_GV_AWS_ACCESS_KEY_ID) or os.getenv(ENV_AWS_ACCESS_KEY_ID)
     )
     secret_key = (
         secret_access_key
-        or os.getenv("GV_AWS_SECRET_ACCESS_KEY")
-        or os.getenv("AWS_SECRET_ACCESS_KEY")
+        or os.getenv(ENV_GV_AWS_SECRET_ACCESS_KEY)
+        or os.getenv(ENV_AWS_SECRET_ACCESS_KEY)
     )
 
     if not access_key or not secret_key:
         raise ValueError(
-            "AWS credentials not found. Set GV_AWS_ACCESS_KEY_ID and GV_AWS_SECRET_ACCESS_KEY "
+            f"AWS credentials not found. Set {ENV_GV_AWS_ACCESS_KEY_ID} and {ENV_GV_AWS_SECRET_ACCESS_KEY} "
             "environment variables, or pass access_key_id and secret_access_key parameters."
         )
 
@@ -85,13 +94,13 @@ def get_default_bucket(bucket_name: str | None = None) -> str:
     """
     bucket = (
         bucket_name
-        or os.getenv("GV_AWS_STORAGE_BUCKET_NAME")
-        or os.getenv("AWS_STORAGE_BUCKET_NAME")
+        or os.getenv(ENV_GV_AWS_STORAGE_BUCKET_NAME)
+        or os.getenv(ENV_AWS_STORAGE_BUCKET_NAME)
     )
 
     if not bucket:
         raise ValueError(
-            "Default S3 bucket not configured. Set GV_AWS_STORAGE_BUCKET_NAME environment variable, "
+            f"Default S3 bucket not configured. Set {ENV_GV_AWS_STORAGE_BUCKET_NAME} environment variable, "
             "or pass bucket_name parameter."
         )
 

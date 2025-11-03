@@ -16,7 +16,7 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.0
     hooks:
-      # Run the linter
+      # Run the linter (includes import sorting via isort rules)
       - id: ruff
         args: [--fix]
       # Run the formatter
@@ -30,11 +30,6 @@ repos:
           - pydantic>=2.0.0
           - types-pillow
           - types-aiofiles
+          - types-pyyaml
         args: [--ignore-missing-imports]
         files: ^src/
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--profile", "black", "--line-length", "100"]
