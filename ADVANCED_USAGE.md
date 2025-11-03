@@ -2,6 +2,10 @@
 
 This guide covers advanced features and use cases for gemini-imagen, including S3 integration, LangSmith tracing, batch processing, and scripting.
 
+> **For basic CLI usage**, see [README.md](README.md)
+> **For Python library API**, see [LIBRARY.md](LIBRARY.md)
+> **For contributing**, see [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## Table of Contents
 
 - [S3 Integration](#s3-integration)
@@ -505,7 +509,8 @@ See the [`examples/`](examples/) directory for complete working examples:
 
 ## Additional Resources
 
-- [README.md](README.md) - Main documentation and quick start
+- [README.md](README.md) - CLI documentation and quick start
+- [LIBRARY.md](LIBRARY.md) - Python library API reference and examples
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development and contribution guidelines
 - [docs/SAFETY_FILTERING.md](docs/SAFETY_FILTERING.md) - Safety filtering details
 - [GitHub Issues](https://github.com/aviadr1/gemini-imagen/issues) - Report bugs or request features

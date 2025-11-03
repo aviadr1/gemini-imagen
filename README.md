@@ -8,6 +8,10 @@
 
 A comprehensive Python library and CLI for Google Gemini's image generation and analysis capabilities.
 
+> **📚 For Python library usage**, see [LIBRARY.md](LIBRARY.md)
+> **🚀 For advanced features**, see [ADVANCED_USAGE.md](ADVANCED_USAGE.md)
+> **🤝 For contributing**, see [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## Features
 
 - 🎨 **Text-to-Image Generation** - Create images from text prompts
@@ -67,7 +71,11 @@ imagen edit "make it sunset" -i original.jpg -o edited.png
 imagen upload local.png s3://my-bucket/remote.png
 ```
 
-### Python API
+### Python Library
+
+For detailed Python API documentation, see **[LIBRARY.md](LIBRARY.md)**.
+
+Quick example:
 
 ```python
 from gemini_imagen import GeminiImageGenerator
@@ -120,7 +128,11 @@ echo "a sunset" | imagen generate -o sunset.png
 cat prompt.txt | imagen generate -o output.png
 ```
 
-## Python API Examples
+## Python Library Examples
+
+For comprehensive Python API documentation, examples, and integration patterns, see **[LIBRARY.md](LIBRARY.md)**.
+
+Here are a few quick examples:
 
 ### Text-to-Image Generation
 
@@ -144,59 +156,11 @@ result = await generator.generate(
 print(result.text)
 ```
 
-### Labeled Input Images
-
-```python
-result = await generator.generate(
-    prompt="Blend the artistic style from Photo A with the composition from Photo B",
-    input_images=[
-        ("Photo A (style):", "style_reference.jpg"),
-        ("Photo B (composition):", "composition_reference.jpg")
-    ],
-    output_images=["blended_result.png"]
-)
-```
-
-### S3 Integration
-
-```python
-# Configure AWS credentials (or use environment variables)
-# GV_AWS_ACCESS_KEY_ID, GV_AWS_SECRET_ACCESS_KEY, GV_AWS_STORAGE_BUCKET_NAME
-
-result = await generator.generate(
-    prompt="A magical forest scene",
-    input_images=["s3://my-bucket/reference.jpg"],
-    output_images=["s3://my-bucket/output.png"]
-)
-
-print(f"S3 URI: {result.image_s3_uri}")
-print(f"HTTP URL: {result.image_http_url}")
-```
-
-### LangSmith Tracing
-
-```python
-import os
-os.environ["LANGSMITH_TRACING"] = "true"
-os.environ["LANGSMITH_API_KEY"] = "your-key"
-
-generator = GeminiImageGenerator(log_images=True)
-
-result = await generator.generate(
-    prompt="A robot reading in a cozy library",
-    output_images=["robot_library.png"],
-    metadata={"user_id": "demo"},
-    tags=["demo", "robot"]
-)
-# View traces at https://smith.langchain.com/
-```
-
-### Safety Settings
+### With Safety Settings
 
 ```python
 from gemini_imagen import SafetySetting, HarmCategory, HarmBlockThreshold
 
-# Relaxed settings for artistic content
 result = await generator.generate(
     prompt="A tasteful artistic photo",
     output_images=["output.png"],
@@ -208,6 +172,8 @@ result = await generator.generate(
     ]
 )
 ```
+
+For more examples including S3 integration, LangSmith tracing, batch processing, and web framework integration, see **[LIBRARY.md](LIBRARY.md)**.
 
 ## Configuration
 
@@ -252,7 +218,11 @@ Values are resolved in order (highest to lowest priority):
 3. Config file (`~/.config/imagen/config.yaml`)
 4. Default values
 
-## API Reference
+## Python API Reference
+
+For complete API documentation with detailed examples, see **[LIBRARY.md](LIBRARY.md#api-reference)**.
+
+Quick reference:
 
 ### GeminiImageGenerator
 
@@ -268,40 +238,20 @@ generator = GeminiImageGenerator(
 
 ```python
 result = await generator.generate(
-    prompt: str,                                     # Main prompt (required)
-    system_prompt: Optional[str] = None,             # System instructions
-    input_images: Optional[List[ImageSource]] = None,# Input images
-    temperature: Optional[float] = None,             # Sampling temperature (0.0-1.0)
-    aspect_ratio: Optional[Union[str, Tuple[int, int]]] = None,  # e.g., "16:9"
-    safety_settings: Optional[List[SafetySetting]] = None,       # Safety filtering
-    output_images: Optional[List[OutputImageSpec]] = None,       # Generate images
-    output_text: bool = False,                                   # Generate text
-    metadata: Optional[Dict[str, str]] = None,       # LangSmith metadata
-    tags: Optional[List[str]] = None                 # LangSmith tags
+    prompt: str,                           # Main prompt (required)
+    system_prompt: Optional[str] = None,   # System instructions
+    input_images: Optional[List] = None,   # Input images
+    temperature: Optional[float] = None,   # Sampling temperature (0.0-1.0)
+    aspect_ratio: Optional[str] = None,    # e.g., "16:9"
+    safety_settings: Optional[List] = None,# Safety filtering
+    output_images: Optional[List] = None,  # Generate images
+    output_text: bool = False,             # Generate text
+    metadata: Optional[Dict] = None,       # LangSmith metadata
+    tags: Optional[List] = None            # LangSmith tags
 ) -> GenerationResult
 ```
 
-### GenerationResult
-
-```python
-class GenerationResult:
-    text: Optional[str]                      # Generated text
-    images: List[Image.Image]                # PIL Image objects
-    image_labels: List[Optional[str]]        # Image labels
-    image_locations: List[str]               # Local file paths
-    image_s3_uris: List[Optional[str]]       # S3 URIs
-    image_http_urls: List[Optional[str]]     # HTTP URLs
-
-    # Convenience properties (first image)
-    @property
-    def image(self) -> Optional[Image.Image]
-    @property
-    def image_location(self) -> Optional[str]
-    @property
-    def image_s3_uri(self) -> Optional[str]
-    @property
-    def image_http_url(self) -> Optional[str]
-```
+See **[LIBRARY.md](LIBRARY.md)** for full type definitions, parameter details, and usage examples.
 
 ## Examples
 
@@ -315,6 +265,7 @@ See the [`examples/`](examples/) directory for complete working examples:
 
 ## Documentation
 
+- **[LIBRARY.md](LIBRARY.md)** - Python library documentation, API reference, integration examples
 - **[ADVANCED_USAGE.md](ADVANCED_USAGE.md)** - Advanced features, S3, LangSmith, scripting, automation
 - **[docs/SAFETY_FILTERING.md](docs/SAFETY_FILTERING.md)** - Safety filtering configuration and details
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development setup, testing, contributing guidelines
