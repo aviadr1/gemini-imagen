@@ -91,8 +91,12 @@ class TestPythonVersionCheck:
 class TestInstallPaths:
     """Test installation path determination."""
 
-    def test_unix_paths(self, tmp_path: Path) -> None:
+    def test_unix_paths(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test Unix installation paths."""
+        # Clear XDG environment variables to test defaults
+        monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
         with patch.object(Path, "home", return_value=tmp_path):
             venv_dir, wrapper_dir, config_dir = install.get_install_paths("linux")
 

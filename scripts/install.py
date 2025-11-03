@@ -37,17 +37,17 @@ RESET = "\033[0m"
 
 def log_info(msg: str) -> None:
     """Print info message."""
-    print(f"{GREEN}✓{RESET} {msg}")
+    print(f"{GREEN}[OK]{RESET} {msg}")
 
 
 def log_warning(msg: str) -> None:
     """Print warning message."""
-    print(f"{YELLOW}⚠{RESET} {msg}", file=sys.stderr)
+    print(f"{YELLOW}[WARN]{RESET} {msg}", file=sys.stderr)
 
 
 def log_error(msg: str) -> None:
     """Print error message."""
-    print(f"{RED}✗{RESET} {msg}", file=sys.stderr)
+    print(f"{RED}[ERROR]{RESET} {msg}", file=sys.stderr)
 
 
 def get_platform_info() -> tuple[str, str, str]:
@@ -426,7 +426,7 @@ def main() -> int:
     prompt_path_update(wrapper_dir, os_name)
 
     # Success message
-    print(f"\n{BOLD}{GREEN}✓ Installation complete!{RESET}\n")
+    print(f"\n{BOLD}{GREEN}[OK] Installation complete!{RESET}\n")
     print(f"Run '{BOLD}imagen --help{RESET}' to get started.")
     print(f"Run '{BOLD}imagen self-update{RESET}' to update to the latest version.")
     print()
