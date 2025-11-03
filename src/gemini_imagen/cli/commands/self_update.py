@@ -9,7 +9,6 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import click
 import httpx
@@ -19,23 +18,26 @@ from ... import __version__
 
 def get_install_receipt_path() -> Path:
     """Get path to install receipt file."""
+    import os
     import platform
 
     os_name = platform.system().lower()
 
     if os_name == "windows":
-        config_dir = Path.home() / "AppData" / "Local" / "imagen"
+        # Respect LOCALAPPDATA env var (important for testing)
+        local_appdata = os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
+        config_dir = Path(local_appdata) / "imagen"
     else:
         # Unix (Linux/macOS)
-        import os
-
-        config_home = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        # Respect XDG_CONFIG_HOME and HOME env vars (important for testing)
+        home = os.environ.get("HOME", str(Path.home()))
+        config_home = os.environ.get("XDG_CONFIG_HOME", str(Path(home) / ".config"))
         config_dir = Path(config_home) / "imagen"
 
     return config_dir / "install_receipt.json"
 
 
-def load_install_receipt() -> Optional[dict]:
+def load_install_receipt() -> dict | None:
     """Load install receipt if it exists."""
     receipt_path = get_install_receipt_path()
 
@@ -58,7 +60,7 @@ def save_install_receipt(receipt: dict) -> None:
         json.dump(receipt, indent=2, fp=f)
 
 
-def check_latest_version(timeout: float = 5.0) -> Optional[str]:
+def check_latest_version(timeout: float = 5.0) -> str | None:
     """
     Check latest version from GitHub API.
 
@@ -87,7 +89,7 @@ def get_python_executable() -> Path:
     return Path(sys.executable)
 
 
-def update_package(venv_python: Path, version: Optional[str] = None) -> bool:
+def update_package(venv_python: Path, version: str | None = None) -> bool:
     """
     Update gemini-imagen package using pip.
 
@@ -132,7 +134,7 @@ def update_package(venv_python: Path, version: Optional[str] = None) -> bool:
     "target_version",
     help="Update to specific version (e.g., 0.6.0)",
 )
-def self_update(check: bool, target_version: Optional[str]) -> None:
+def self_update(check: bool, target_version: str | None) -> None:
     """
     Update gemini-imagen to the latest version.
 
