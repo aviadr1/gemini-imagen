@@ -4,6 +4,8 @@ Main CLI entry point for gemini-imagen.
 Provides a command-line interface for image generation and analysis using Google Gemini.
 """
 
+import threading
+
 import click
 
 from .. import __version__
@@ -15,6 +17,7 @@ from .commands import (
     keys,
     langsmith,
     models,
+    self_update,
     storage,
     template,
 )
@@ -68,6 +71,11 @@ def cli(ctx: click.Context) -> None:
     # Ensure context object exists
     ctx.ensure_object(dict)
 
+    # Check for updates in background (only for standalone installs)
+    # This is non-blocking and fails silently
+    thread = threading.Thread(target=self_update.check_for_updates_background, daemon=True)
+    thread.start()
+
 
 cli.add_command(generate.generate)
 cli.add_command(analyze.analyze)
@@ -79,6 +87,7 @@ cli.add_command(storage.upload)
 cli.add_command(storage.download)
 cli.add_command(template.template)
 cli.add_command(langsmith.langsmith)
+cli.add_command(self_update.self_update)
 
 
 if __name__ == "__main__":

@@ -27,25 +27,48 @@ A comprehensive Python library and CLI for Google Gemini's image generation and 
 
 ## Installation
 
-### Basic Installation
+### Quick Install (No Python Required)
 
+Install `imagen` CLI without manually installing Python or managing dependencies:
+
+**Linux / macOS:**
+```bash
+curl -sSL https://raw.githubusercontent.com/aviadr1/gemini-imagen/main/scripts/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/aviadr1/gemini-imagen/main/scripts/install.ps1 | iex
+```
+
+The installer will:
+- Create an isolated environment for gemini-imagen
+- Install all dependencies automatically
+- Add `imagen` command to your PATH
+- Support self-updates with `imagen self-update`
+
+> **Note:** Python 3.12+ is still required but the installer handles everything automatically.
+
+### Traditional Installation (with pip)
+
+**Basic Installation:**
 ```bash
 pip install gemini-imagen
 ```
 
-### With S3 Support
-
+**With S3 Support:**
 ```bash
 pip install gemini-imagen[s3]
 ```
 
-### From Source
-
+**From Source:**
 ```bash
 git clone https://github.com/aviadr1/gemini-imagen.git
 cd gemini-imagen
 pip install -e ".[dev,s3]"
 ```
+
+For detailed installation instructions, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## Quick Start
 
@@ -105,6 +128,7 @@ The CLI provides comprehensive image generation and management capabilities:
 | `keys` | Manage API keys | `imagen keys set google YOUR_KEY` |
 | `config` | Manage configuration | `imagen config set default_model gemini-2.0-flash-exp` |
 | `models` | List and manage models | `imagen models list` |
+| `self-update` | Update to latest version | `imagen self-update` |
 
 ### Common CLI Options
 

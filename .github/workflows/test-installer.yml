@@ -1,0 +1,264 @@
+name: Test Standalone Installer
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'src/gemini_imagen/cli/commands/self_update.py'
+      - '.github/workflows/test-installer.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'src/gemini_imagen/cli/commands/self_update.py'
+      - '.github/workflows/test-installer.yml'
+  workflow_dispatch:
+
+jobs:
+  test-installer-linux:
+    name: Test Installer (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Test install.py directly
+        run: |
+          # Create temp directory for test installation
+          export HOME="${{runner.temp}}/test-home"
+          mkdir -p "$HOME"
+
+          # Run installer in non-interactive mode
+          python3 scripts/install.py <<EOF
+          y
+          n
+          EOF
+
+      - name: Verify installation
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Check imagen command exists
+          which imagen || (echo "imagen command not found" && exit 1)
+
+          # Check version
+          imagen --version
+
+          # Check help
+          imagen --help
+
+      - name: Test self-update check
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Test self-update --check
+          imagen self-update --check || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          rm -rf "$HOME"
+
+  test-installer-macos:
+    name: Test Installer (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Test install.py directly
+        run: |
+          # Create temp directory for test installation
+          export HOME="${{runner.temp}}/test-home"
+          mkdir -p "$HOME"
+
+          # Run installer in non-interactive mode
+          python3 scripts/install.py <<EOF
+          y
+          n
+          EOF
+
+      - name: Verify installation
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Check imagen command exists
+          which imagen || (echo "imagen command not found" && exit 1)
+
+          # Check version
+          imagen --version
+
+          # Check help
+          imagen --help
+
+      - name: Test self-update check
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Test self-update --check
+          imagen self-update --check || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          rm -rf "$HOME"
+
+  test-installer-windows:
+    name: Test Installer (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Test install.py directly
+        shell: pwsh
+        run: |
+          # Create temp directory for test installation
+          $env:LOCALAPPDATA = "${{runner.temp}}\test-local"
+          New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA
+
+          # Run installer with piped input
+          "y`nn`n" | python scripts/install.py
+
+      - name: Verify installation
+        shell: pwsh
+        run: |
+          $env:LOCALAPPDATA = "${{runner.temp}}\test-local"
+          $env:PATH = "$env:LOCALAPPDATA\Programs\imagen;$env:PATH"
+
+          # Check imagen command exists
+          Get-Command imagen -ErrorAction Stop
+
+          # Check version
+          imagen --version
+
+          # Check help
+          imagen --help
+
+      - name: Test self-update check
+        shell: pwsh
+        run: |
+          $env:LOCALAPPDATA = "${{runner.temp}}\test-local"
+          $env:PATH = "$env:LOCALAPPDATA\Programs\imagen;$env:PATH"
+
+          # Test self-update --check (may fail if network issues, that's OK)
+          try {
+            imagen self-update --check
+          } catch {
+            Write-Host "Self-update check failed (expected in some cases)"
+          }
+
+      - name: Cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          $testLocal = "${{runner.temp}}\test-local"
+          if (Test-Path $testLocal) {
+            Remove-Item -Recurse -Force $testLocal
+          }
+
+  test-shell-wrapper-linux:
+    name: Test install.sh (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Test install.sh wrapper
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          mkdir -p "$HOME"
+
+          # Test that script runs without errors
+          bash scripts/install.sh <<EOF
+          y
+          n
+          EOF
+
+      - name: Verify installation
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          imagen --version
+
+      - name: Cleanup
+        if: always()
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          rm -rf "$HOME"
+
+  test-uninstaller:
+    name: Test Uninstaller
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install first
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          mkdir -p "$HOME"
+
+          python3 scripts/install.py <<EOF
+          y
+          n
+          EOF
+
+      - name: Verify installation exists
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+
+          test -f "$HOME/.local/share/gemini-imagen/bin/python" || exit 1
+          test -f "$HOME/.local/bin/imagen" || exit 1
+          test -f "$HOME/.config/imagen/install_receipt.json" || exit 1
+
+      - name: Run uninstaller
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+
+          python3 scripts/uninstall.py <<EOF
+          y
+          n
+          EOF
+
+      - name: Verify removal
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+
+          # These should not exist after uninstall
+          test ! -d "$HOME/.local/share/gemini-imagen" || (echo "venv not removed" && exit 1)
+          test ! -f "$HOME/.local/bin/imagen" || (echo "wrapper not removed" && exit 1)
+          test ! -d "$HOME/.config/imagen" || (echo "config not removed" && exit 1)
+
+      - name: Cleanup
+        if: always()
+        run: |
+          export HOME="${{runner.temp}}/test-home"
+          rm -rf "$HOME"
