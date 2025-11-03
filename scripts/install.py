@@ -350,7 +350,7 @@ def update_path_windows(wrapper_dir: Path) -> bool:
         return False
 
 
-def prompt_path_update(wrapper_dir: Path, os_name: str) -> None:
+def prompt_path_update(wrapper_dir: Path, os_name: str, auto_yes: bool = False) -> None:
     """Prompt user to update PATH if needed."""
     # Check if already in PATH
     path_env = os.environ.get("PATH", "")
@@ -362,7 +362,11 @@ def prompt_path_update(wrapper_dir: Path, os_name: str) -> None:
     print(f"The installer can add {wrapper_dir} to your PATH automatically.")
     print("This allows you to run 'imagen' from anywhere.")
 
-    response = input("Add to PATH? [Y/n]: ").strip().lower()
+    if auto_yes:
+        print("Add to PATH? [Y/n]: y (auto-accepted)")
+        response = "y"
+    else:
+        response = input("Add to PATH? [Y/n]: ").strip().lower()
 
     if response in ("", "y", "yes"):
         if os_name == "windows":
@@ -385,6 +389,10 @@ def main() -> int:
     """Main installation function."""
     print(f"\n{BOLD}gemini-imagen Standalone Installer{RESET}\n")
 
+    # Check for non-interactive mode (when piped from curl/wget)
+    is_interactive = sys.stdin.isatty()
+    auto_yes = "--yes" in sys.argv or "-y" in sys.argv or not is_interactive
+
     # Check Python version
     if not check_python_version():
         return 1
@@ -403,10 +411,13 @@ def main() -> int:
     print()
 
     # Confirm installation
-    response = input("Continue with installation? [Y/n]: ").strip().lower()
-    if response not in ("", "y", "yes"):
-        print("Installation cancelled.")
-        return 0
+    if auto_yes:
+        print("Continue with installation? [Y/n]: y (auto-accepted)")
+    else:
+        response = input("Continue with installation? [Y/n]: ").strip().lower()
+        if response not in ("", "y", "yes"):
+            print("Installation cancelled.")
+            return 0
 
     print()
 
@@ -427,7 +438,7 @@ def main() -> int:
         log_warning("Could not create install receipt (self-update may not work)")
 
     # Update PATH
-    prompt_path_update(wrapper_dir, os_name)
+    prompt_path_update(wrapper_dir, os_name, auto_yes)
 
     # Success message
     print(f"\n{BOLD}{GREEN}[OK] Installation complete!{RESET}\n")

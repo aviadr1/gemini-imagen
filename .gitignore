@@ -164,3 +164,7 @@ langsmith_demo_*.png
 
 # UV lock file (optional - some prefer to commit it)
 # uv.lock
+
+# Test installer artifacts
+.local/
+.config/imagen/

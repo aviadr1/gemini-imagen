@@ -226,6 +226,61 @@ jobs:
           export HOME="${{runner.temp}}/test-home"
           rm -rf "$HOME"
 
+  test-curl-install:
+    name: Test curl | sh Installation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Serve install.sh locally
+        run: |
+          # Start a simple HTTP server in the background
+          cd scripts
+          python3 -m http.server 8888 &
+          HTTP_PID=$!
+          echo "HTTP_PID=$HTTP_PID" >> $GITHUB_ENV
+          cd ..
+
+          # Wait for server to start
+          sleep 2
+
+      - name: Test curl piped installation
+        run: |
+          export HOME="${{runner.temp}}/test-curl-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
+          mkdir -p "$HOME"
+
+          # Test curl piping (simulates: curl ... | sh)
+          curl -sSL http://localhost:8888/install.sh | sh
+
+      - name: Verify installation
+        run: |
+          export HOME="${{runner.temp}}/test-curl-home"
+          unset XDG_DATA_HOME
+          unset XDG_CONFIG_HOME
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Check imagen command exists
+          which imagen || (echo "imagen command not found" && exit 1)
+
+          # Check version
+          imagen --version
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Stop HTTP server
+          kill $HTTP_PID || true
+
+          export HOME="${{runner.temp}}/test-curl-home"
+          rm -rf "$HOME"
+
   test-uninstaller:
     name: Test Uninstaller
     runs-on: ubuntu-latest
