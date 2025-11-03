@@ -18,7 +18,7 @@ import platform
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -250,7 +250,7 @@ def create_install_receipt(
 
     receipt = {
         "version": version,
-        "install_date": datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z"),
+        "install_date": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "install_method": "standalone",
         "venv_path": str(venv_dir),
         "wrapper_path": str(wrapper_dir),

@@ -20,6 +20,7 @@ from .commands import (
     self_update,
     storage,
     template,
+    version,
 )
 
 
@@ -87,6 +88,7 @@ cli.add_command(storage.upload)
 cli.add_command(storage.download)
 cli.add_command(template.template)
 cli.add_command(langsmith.langsmith)
+cli.add_command(version.version)
 cli.add_command(self_update.self_update)
 
 

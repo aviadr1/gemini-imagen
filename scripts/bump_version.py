@@ -44,7 +44,7 @@ def bump_version(current: str, bump_type: str) -> str:
         return bump_type
 
 
-def update_version(pyproject_path: Path, new_version: str) -> None:
+def update_version_in_pyproject(pyproject_path: Path, new_version: str) -> None:
     """Update version in pyproject.toml."""
     content = pyproject_path.read_text()
     updated = re.sub(
@@ -54,6 +54,25 @@ def update_version(pyproject_path: Path, new_version: str) -> None:
         count=1,
     )
     pyproject_path.write_text(updated)
+
+
+def update_version_in_init(project_root: Path, new_version: str) -> None:
+    """Update version in src/gemini_imagen/__init__.py."""
+    init_path = project_root / "src" / "gemini_imagen" / "__init__.py"
+
+    if not init_path.exists():
+        print(f"Warning: Could not find {init_path}")
+        return
+
+    content = init_path.read_text()
+    updated = re.sub(
+        r'__version__ = "[^"]+"',
+        f'__version__ = "{new_version}"',
+        content,
+        count=1,
+    )
+    init_path.write_text(updated)
+    print(f"Updated version in {init_path}")
 
 
 def main() -> None:
@@ -93,11 +112,14 @@ def main() -> None:
         print(__doc__)
         sys.exit(1)
 
-    # Update version
-    update_version(pyproject_path, new_version)
-    print(f"Updated version: {new_version}")
-    print("\nNote: Version updated in pyproject.toml")
-    print("This is typically called by release.sh, not directly.")
+    # Update version in both files
+    update_version_in_pyproject(pyproject_path, new_version)
+    print(f"Updated version in pyproject.toml: {new_version}")
+
+    update_version_in_init(project_root, new_version)
+
+    print(f"\n✓ Version successfully updated to {new_version}")
+    print("Note: This is typically called by release.sh, not directly.")
 
 
 if __name__ == "__main__":
