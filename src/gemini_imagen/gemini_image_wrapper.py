@@ -40,6 +40,7 @@ Usage:
 
 import asyncio
 import os
+import warnings
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
@@ -68,6 +69,15 @@ from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3
 
 if TYPE_CHECKING:
     from langsmith.run_trees import RunTree
+
+# Suppress warnings about new finish reasons not yet in SDK enum
+# This is expected as the API may add new finish reasons before SDK updates
+warnings.filterwarnings(
+    "ignore",
+    message=".*is not a valid FinishReason.*",
+    category=UserWarning,
+    module="google.genai._common",
+)
 
 # Load environment variables
 load_dotenv()
