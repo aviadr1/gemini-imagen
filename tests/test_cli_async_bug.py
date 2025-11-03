@@ -65,6 +65,9 @@ class TestGenerateCommandAsync:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 # Run the command
@@ -130,6 +133,9 @@ class TestGenerateCommandAsync:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 mock_load.return_value = {

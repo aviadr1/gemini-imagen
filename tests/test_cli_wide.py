@@ -75,6 +75,12 @@ class TestGenerateCommandWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 # Run the command
@@ -141,6 +147,9 @@ class TestGenerateCommandWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 # Run with many options
@@ -201,6 +210,9 @@ class TestGenerateCommandWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 result = runner.invoke(
@@ -350,6 +362,9 @@ class TestEditCommandWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 result = runner.invoke(
@@ -436,6 +451,9 @@ class TestTemplateWorkflowWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 mock_load_template.return_value = template_data
@@ -496,6 +514,9 @@ class TestTemplateWorkflowWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_config.return_value = mock_cfg
 
                 mock_load_template.return_value = template_data
@@ -563,6 +584,9 @@ class TestConfigurationWide:
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
                 mock_cfg.get_generation_model.return_value = DEFAULT_GENERATION_MODEL
                 mock_cfg.get_langsmith_tracing.return_value = False
+                mock_cfg.get_safety_settings.return_value = None
+                mock_cfg.get_temperature.return_value = None
+                mock_cfg.get_aspect_ratio.return_value = None
                 mock_gen_config.return_value = mock_cfg
 
                 result = runner.invoke(cli, ["generate", "test", "-o", gen_output_path])
