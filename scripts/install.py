@@ -194,29 +194,28 @@ def create_wrapper_script(venv_dir: Path, wrapper_dir: Path, os_name: str) -> bo
     """Create wrapper script that launches imagen from venv."""
     wrapper_dir.mkdir(parents=True, exist_ok=True)
 
+    # Pip already creates an 'imagen' script in venv/bin or venv/Scripts
+    # We just need to symlink or copy it to the wrapper directory
     if os_name == "windows":
-        # Windows batch script
-        wrapper_path = wrapper_dir / "imagen.bat"
-        python_exe = get_python_executable(venv_dir, os_name)
-
-        content = f"""@echo off
-"{python_exe}" -m gemini_imagen.cli %*
-"""
+        source_script = venv_dir / "Scripts" / "imagen.exe"
+        wrapper_path = wrapper_dir / "imagen.exe"
     else:
-        # Unix shell script
+        source_script = venv_dir / "bin" / "imagen"
         wrapper_path = wrapper_dir / "imagen"
-        python_exe = get_python_executable(venv_dir, os_name)
-
-        content = f"""#!/bin/sh
-exec "{python_exe}" -m gemini_imagen.cli "$@"
-"""
 
     try:
-        wrapper_path.write_text(content)
+        if not source_script.exists():
+            log_error(f"Source script not found at {source_script}")
+            return False
 
-        # Make executable on Unix
-        if os_name != "windows":
-            wrapper_path.chmod(0o755)
+        # On Unix, create symlink; on Windows, copy the executable
+        if os_name == "windows":
+            shutil.copy2(source_script, wrapper_path)
+        else:
+            # Remove existing symlink if present
+            if wrapper_path.exists() or wrapper_path.is_symlink():
+                wrapper_path.unlink()
+            wrapper_path.symlink_to(source_script)
 
         log_info(f"Created wrapper script at {wrapper_path}")
         return True
@@ -251,7 +250,7 @@ def create_install_receipt(
 
     receipt = {
         "version": version,
-        "install_date": datetime.utcnow().isoformat() + "Z",
+        "install_date": datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z"),
         "install_method": "standalone",
         "venv_path": str(venv_dir),
         "wrapper_path": str(wrapper_dir),
