@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from ..constants import DEFAULT_ANALYSIS_MODEL, DEFAULT_GENERATION_MODEL
+
 
 class Config:
     """Configuration manager for gemini-imagen CLI."""
@@ -160,9 +162,9 @@ class Config:
         for image understanding/analysis tasks.
 
         Returns:
-            Default model name (gemini-2.5-flash-image)
+            Default model name
         """
-        return self.get("default_model", default="gemini-2.5-flash-image")
+        return self.get("default_model", default=DEFAULT_GENERATION_MODEL)
 
     def get_generation_model(self) -> str:
         """
@@ -172,13 +174,13 @@ class Config:
         This method checks in order:
         1. generation_model config value
         2. default_model config value
-        3. Hardcoded default: gemini-2.5-flash-image
+        3. Hardcoded default from constants.DEFAULT_GENERATION_MODEL
 
         Returns:
             Model name to use for image generation
         """
         # Try generation_model first, then default_model, then hardcoded default
-        return self.get("generation_model") or self.get("default_model", default="gemini-2.5-flash-image")
+        return self.get("generation_model") or self.get("default_model", default=DEFAULT_GENERATION_MODEL)
 
     def get_analysis_model(self) -> str:
         """
@@ -188,13 +190,13 @@ class Config:
         efficiently process and describe images. This method checks in order:
         1. analysis_model config value
         2. default_model config value
-        3. Hardcoded default: gemini-2.0-flash
+        3. Hardcoded default from constants.DEFAULT_ANALYSIS_MODEL
 
         Returns:
             Model name to use for image analysis
         """
         # Try analysis_model first, then default_model, then hardcoded default
-        return self.get("analysis_model") or self.get("default_model", default="gemini-2.0-flash")
+        return self.get("analysis_model") or self.get("default_model", default=DEFAULT_ANALYSIS_MODEL)
 
     def get_langsmith_tracing(self) -> bool:
         """Get LangSmith tracing enabled status."""

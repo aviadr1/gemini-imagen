@@ -62,7 +62,7 @@ class TestGenerateCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_default_model.return_value = "gemini-2.0-flash-exp"
+                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -127,7 +127,7 @@ class TestGenerateCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_default_model.return_value = "gemini-2.0-flash-exp"
+                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
                 mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
@@ -177,7 +177,10 @@ class TestAnalyzeCommandAsync:
 
         try:
             mock_generator = Mock()
-            mock_generator.analyze = AsyncMock(return_value="Test analysis result")
+            # Analyze command uses generate() method with output_text=True
+            mock_result = Mock()
+            mock_result.text = "Test analysis result"
+            mock_generator.generate = AsyncMock(return_value=mock_result)
 
             with (
                 patch("gemini_imagen.cli.commands.analyze.GeminiImageGenerator") as mock_class,
@@ -187,7 +190,8 @@ class TestAnalyzeCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_default_model.return_value = "gemini-2.0-flash-exp"
+                mock_cfg.get_analysis_model.return_value = "gemini-2.0-flash"
+                mock_cfg.get_langsmith_tracing.return_value = False
                 mock_config.return_value = mock_cfg
 
                 result = runner.invoke(cli, ["analyze", image_path])
@@ -232,7 +236,7 @@ class TestEditCommandAsync:
 
                 mock_cfg = Mock()
                 mock_cfg.get_google_api_key.return_value = "test-api-key"
-                mock_cfg.get_default_model.return_value = "gemini-2.0-flash-exp"
+                mock_cfg.get_generation_model.return_value = "gemini-2.5-flash-image"
                 mock_config.return_value = mock_cfg
 
                 result = runner.invoke(

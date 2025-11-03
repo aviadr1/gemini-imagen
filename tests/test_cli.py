@@ -128,7 +128,7 @@ class TestModelsCommand:
         """Test getting default model."""
         with patch("gemini_imagen.cli.commands.models.get_config") as mock_config:
             mock_cfg = MagicMock()
-            mock_cfg.get_default_model.return_value = "gemini-2.0-flash-exp"
+            mock_cfg.get_default_model.return_value = "gemini-2.5-flash-image"
             mock_config.return_value = mock_cfg
 
             result = runner.invoke(cli, ["models", "default"])

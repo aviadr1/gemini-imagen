@@ -52,6 +52,7 @@ from langsmith import get_current_run_tree, traceable
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
+from .constants import DEFAULT_GENERATION_MODEL
 from .s3_utils import get_http_url, is_http_url, is_s3_uri, load_image, parse_s3_uri, save_image
 
 if TYPE_CHECKING:
@@ -225,7 +226,7 @@ class GeminiImageGenerator:
 
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-image",
+        model_name: str = DEFAULT_GENERATION_MODEL,
         api_key: str | None = None,
         log_images: bool = True,
         # AWS S3 credentials (optional, defaults to environment variables)
