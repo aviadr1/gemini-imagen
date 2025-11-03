@@ -133,7 +133,7 @@ class TestModelsCommand:
 
             result = runner.invoke(cli, ["models", "default"])
             assert result.exit_code == 0
-            assert "gemini-2.0-flash-exp" in result.output
+            assert "gemini-2.5-flash-image" in result.output
 
     def test_models_default_set(self, runner):
         """Test setting default model."""
