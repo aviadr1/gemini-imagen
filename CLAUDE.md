@@ -15,11 +15,10 @@
 ## Code Quality Tools
 
 ### Linters and Formatters
-All linters run automatically via pre-commit hooks:
-- **Ruff**: Linting and formatting (includes import sorting via isort rules)
-- **mypy**: Type checking with `--ignore-missing-imports` flag
+All linters and formatters run automatically via pre-commit hooks:
 - Run all checks: `pre-commit run --all-files`
 - Pre-commit runs automatically on `git commit`
+- See `.pre-commit-config.yaml` for configured hooks
 
 ### Pre-commit Hooks
 - Pre-commit hooks are configured in `.pre-commit-config.yaml`
@@ -30,7 +29,7 @@ All linters run automatically via pre-commit hooks:
 
 ### GitHub Actions Workflows
 1. **CI Workflow** (`.github/workflows/ci.yml`):
-   - Lint job: Runs ruff (linter + formatter) and mypy
+   - Lint job: Runs pre-commit hooks for linting and formatting
    - Test job: Runs pytest with coverage on Python 3.12 and 3.13
    - Integration test job: Only on main branch pushes, requires secrets
    - Build job: Builds the package and checks with twine
@@ -54,7 +53,7 @@ All linters run automatically via pre-commit hooks:
 - Core dependencies are defined in `pyproject.toml`
 - Optional dependency groups:
   - `s3`: AWS S3 support with boto3
-  - `dev`: Development tools (pytest, ruff, mypy, etc.)
+  - `dev`: Development tools (pytest, pre-commit, etc.)
 
 ## Testing
 

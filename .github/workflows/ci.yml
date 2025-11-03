@@ -24,14 +24,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev --extra s3
 
-      - name: Run ruff (linter)
-        run: uv run ruff check --fix src/ examples/
-
-      - name: Run ruff (formatter)
-        run: uv run ruff format src/ examples/
-
-      - name: Run mypy (type checking)
-        run: uv run mypy src/gemini_imagen --ignore-missing-imports
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files
 
   test:
     name: Test Python ${{ matrix.python-version }}
