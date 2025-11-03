@@ -12,6 +12,28 @@ from typing import Any
 import click
 
 
+def filter_none_values(d: dict[str, Any]) -> dict[str, Any]:
+    """
+    Filter out keys with None values from a dictionary.
+
+    This is useful for cleaning up kwargs before passing to functions,
+    especially for LangSmith tracing where we don't want to log unused parameters.
+
+    Args:
+        d: Dictionary to filter
+
+    Returns:
+        New dictionary with None values removed
+
+    Examples:
+        >>> filter_none_values({"a": 1, "b": None, "c": 3})
+        {'a': 1, 'c': 3}
+        >>> filter_none_values({"prompt": "test", "temperature": None})
+        {'prompt': 'test'}
+    """
+    return {k: v for k, v in d.items() if v is not None}
+
+
 def is_tty() -> bool:
     """Check if output is a TTY (terminal)."""
     return sys.stdout.isatty()

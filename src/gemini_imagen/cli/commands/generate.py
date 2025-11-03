@@ -21,6 +21,7 @@ from ..utils import (
     echo_error,
     echo_info,
     echo_success,
+    filter_none_values,
     format_api_error,
     get_prompt_from_args_or_stdin,
     output_json,
@@ -383,8 +384,10 @@ def generate(
         )
 
         # Generate (final_job now only contains library params)
-        logger.debug(f"Calling generator.generate() with: {list(final_job.keys())}")
-        result = asyncio.run(generator.generate(**final_job))
+        # Filter out None values to avoid cluttering LangSmith traces
+        final_job_clean = filter_none_values(final_job)
+        logger.debug(f"Calling generator.generate() with: {list(final_job_clean.keys())}")
+        result = asyncio.run(generator.generate(**final_job_clean))
 
         # Clear progress
         if not json_mode:

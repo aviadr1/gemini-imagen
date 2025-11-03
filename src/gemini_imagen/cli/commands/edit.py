@@ -16,6 +16,7 @@ from ..utils import (
     echo_error,
     echo_info,
     echo_success,
+    filter_none_values,
     format_api_error,
     get_prompt_from_args_or_stdin,
     output_json,
@@ -182,19 +183,16 @@ def edit(
             "prompt": prompt_text,
             "input_images": validated_inputs,
             "output_images": [output],
+            "temperature": temperature,
+            "aspect_ratio": aspect_ratio,
+            "tags": list(tags) if tags else None,
         }
 
-        if temperature is not None:
-            gen_params["temperature"] = temperature
-
-        if aspect_ratio:
-            gen_params["aspect_ratio"] = aspect_ratio
-
-        if tags:
-            gen_params["tags"] = list(tags)
+        # Filter None values to avoid cluttering LangSmith traces
+        gen_params_clean = filter_none_values(gen_params)
 
         # Generate
-        result = asyncio.run(generator.generate(**gen_params))
+        result = asyncio.run(generator.generate(**gen_params_clean))
 
         # Clear progress
         if not json_mode:
