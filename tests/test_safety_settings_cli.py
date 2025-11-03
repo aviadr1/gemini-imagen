@@ -349,3 +349,52 @@ class TestConfigGetMethods:
         ]
         cfg.set("safety_settings", safety_data)
         assert cfg.get_safety_settings() == safety_data
+
+
+class TestSafetySettingsIntegration:
+    """Test safety settings integration in generate command."""
+
+    def test_config_safety_settings_applied_to_generate(self, tmp_path):
+        """Test that config safety_settings are correctly applied when generating."""
+        from gemini_imagen.cli.config import Config
+
+        # This tests the bug where str(HarmCategory.X) creates "HarmCategory.X"
+        # and we need to strip the prefix when reading back
+        config_dir = tmp_path / ".config" / "imagen"
+        config_dir.mkdir(parents=True)
+        cfg = Config(config_dir=config_dir)
+
+        # Set safety settings like the CLI command does (with full enum string representation)
+        safety_data = [
+            {
+                "category": "HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "HarmBlockThreshold.BLOCK_ONLY_HIGH",
+            }
+        ]
+        cfg.set("safety_settings", safety_data)
+
+        # Verify we can read it back and strip the prefix correctly
+        config_safety = cfg.get_safety_settings()
+        assert config_safety is not None
+
+        # Simulate what generate command does
+        from gemini_imagen.constants import HarmBlockThreshold, HarmCategory, SafetySetting
+
+        settings = [
+            SafetySetting(
+                category=getattr(
+                    HarmCategory,
+                    s["category"].replace("HarmCategory.", ""),
+                ),
+                threshold=getattr(
+                    HarmBlockThreshold,
+                    s["threshold"].replace("HarmBlockThreshold.", ""),
+                ),
+            )
+            for s in config_safety
+        ]
+
+        # Should create valid SafetySetting objects
+        assert len(settings) == 1
+        assert settings[0].category == HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT
+        assert settings[0].threshold == HarmBlockThreshold.BLOCK_ONLY_HIGH

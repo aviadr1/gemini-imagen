@@ -485,8 +485,14 @@ def generate(
             if config_safety:
                 final_job["safety_settings"] = [
                     SafetySetting(
-                        category=getattr(HarmCategory, s["category"]),
-                        threshold=getattr(HarmBlockThreshold, s["threshold"]),
+                        category=getattr(
+                            HarmCategory,
+                            s["category"].replace("HarmCategory.", ""),
+                        ),
+                        threshold=getattr(
+                            HarmBlockThreshold,
+                            s["threshold"].replace("HarmBlockThreshold.", ""),
+                        ),
                     )
                     for s in config_safety
                 ]
