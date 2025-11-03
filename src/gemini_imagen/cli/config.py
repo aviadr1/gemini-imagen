@@ -1,0 +1,175 @@
+"""
+Configuration management for gemini-imagen CLI.
+
+Handles loading and saving configuration from multiple sources:
+1. CLI flags (highest priority)
+2. Environment variables
+3. Config file (~/.config/imagen/config.yaml)
+4. Defaults (lowest priority)
+"""
+
+import os
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+
+class Config:
+    """Configuration manager for gemini-imagen CLI."""
+
+    def __init__(self, config_dir: Path | None = None):
+        """
+        Initialize configuration manager.
+
+        Args:
+            config_dir: Custom config directory (default: ~/.config/imagen)
+        """
+        if config_dir is None:
+            # Follow XDG Base Directory Specification
+            xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
+            if xdg_config_home:
+                config_dir = Path(xdg_config_home) / "imagen"
+            else:
+                config_dir = Path.home() / ".config" / "imagen"
+
+        self.config_dir = config_dir
+        self.config_file = config_dir / "config.yaml"
+        self._config: dict[str, Any] = {}
+        self._load()
+
+    def _load(self) -> None:
+        """Load configuration from file."""
+        if self.config_file.exists():
+            with self.config_file.open() as f:
+                self._config = yaml.safe_load(f) or {}
+        else:
+            self._config = {}
+
+    def _save(self) -> None:
+        """Save configuration to file."""
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        with self.config_file.open("w") as f:
+            yaml.safe_dump(self._config, f, default_flow_style=False, sort_keys=False)
+
+    def get(self, key: str, default: Any = None, env_var: str | None = None) -> Any:
+        """
+        Get configuration value with precedence:
+        1. Environment variable (if env_var provided)
+        2. Config file
+        3. Default value
+
+        Args:
+            key: Configuration key
+            default: Default value if not found
+            env_var: Environment variable name to check
+
+        Returns:
+            Configuration value
+        """
+        # Check environment variable first
+        if env_var and env_var in os.environ:
+            return os.environ[env_var]
+
+        # Check config file
+        if key in self._config:
+            return self._config[key]
+
+        # Return default
+        return default
+
+    def set(self, key: str, value: Any) -> None:
+        """
+        Set configuration value and save to file.
+
+        Args:
+            key: Configuration key
+            value: Configuration value
+        """
+        self._config[key] = value
+        self._save()
+
+    def delete(self, key: str) -> bool:
+        """
+        Delete configuration key.
+
+        Args:
+            key: Configuration key to delete
+
+        Returns:
+            True if key existed and was deleted, False otherwise
+        """
+        if key in self._config:
+            del self._config[key]
+            self._save()
+            return True
+        return False
+
+    def list_all(self) -> dict[str, Any]:
+        """
+        Get all configuration values.
+
+        Returns:
+            Dictionary of all configuration values
+        """
+        return self._config.copy()
+
+    def get_path(self) -> Path:
+        """
+        Get path to configuration file.
+
+        Returns:
+            Path to config file
+        """
+        return self.config_file
+
+    # Convenience methods for common config keys
+    def get_google_api_key(self) -> str | None:
+        """Get Google API key from config or environment."""
+        return self.get(
+            "google_api_key",
+            env_var="GOOGLE_API_KEY",
+        ) or self.get("google_api_key", env_var="GEMINI_API_KEY")
+
+    def get_aws_access_key_id(self) -> str | None:
+        """Get AWS access key ID from config or environment."""
+        return self.get("aws_access_key_id", env_var="GV_AWS_ACCESS_KEY_ID")
+
+    def get_aws_secret_access_key(self) -> str | None:
+        """Get AWS secret access key from config or environment."""
+        return self.get("aws_secret_access_key", env_var="GV_AWS_SECRET_ACCESS_KEY")
+
+    def get_aws_bucket_name(self) -> str | None:
+        """Get AWS S3 bucket name from config or environment."""
+        return self.get("aws_storage_bucket_name", env_var="GV_AWS_STORAGE_BUCKET_NAME")
+
+    def get_langsmith_api_key(self) -> str | None:
+        """Get LangSmith API key from config or environment."""
+        return self.get("langsmith_api_key", env_var="LANGSMITH_API_KEY")
+
+    def get_langsmith_project(self) -> str | None:
+        """Get LangSmith project name from config or environment."""
+        return self.get("langsmith_project", env_var="LANGSMITH_PROJECT")
+
+    def get_default_model(self) -> str:
+        """Get default model name."""
+        return self.get("default_model", default="gemini-2.0-flash-exp")
+
+    def get_langsmith_tracing(self) -> bool:
+        """Get LangSmith tracing enabled status."""
+        value = self.get("langsmith_tracing", default=False, env_var="LANGSMITH_TRACING")
+        if isinstance(value, str):
+            return value.lower() in ("true", "1", "yes", "on")
+        return bool(value)
+
+
+# Global config instance
+_config: Config | None = None
+
+
+def get_config() -> Config:
+    """Get global config instance."""
+    global _config
+    if _config is None:
+        _config = Config()
+    return _config

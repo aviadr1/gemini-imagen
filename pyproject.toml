@@ -40,6 +40,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "aiofiles>=24.0.0",
     "aiohttp>=3.9.0",
+    "click>=8.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -74,6 +76,9 @@ Homepage = "https://github.com/aviadr1/gemini-imagen"
 Documentation = "https://github.com/aviadr1/gemini-imagen#readme"
 Repository = "https://github.com/aviadr1/gemini-imagen"
 Issues = "https://github.com/aviadr1/gemini-imagen/issues"
+
+[project.scripts]
+imagen = "gemini_imagen.cli:cli"
 
 [build-system]
 requires = ["hatchling"]
