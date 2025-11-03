@@ -4,12 +4,17 @@ Generate command for gemini-imagen CLI.
 Generates images from text prompts.
 """
 
+import json
+import logging
 import sys
+from pathlib import Path
 
 import click
 
 from ...gemini_image_wrapper import GeminiImageGenerator
 from ..config import get_config
+from ..job_merge import merge_template_keys_overrides, split_job_and_variables
+from ..templates import load_template
 from ..utils import (
     clear_progress,
     echo_error,
@@ -22,11 +27,48 @@ from ..utils import (
     validate_input_path,
     validate_output_path,
 )
+from ..variable_substitution import substitute_variables, validate_variables
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
 @click.argument("prompt", required=False)
-@click.option("-o", "--output", required=True, help="Output file path or S3 URI")
+@click.option(
+    "--template",
+    "template_name",
+    help="Load job template by name",
+)
+@click.option(
+    "--keys",
+    "keys_files",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Load keys from JSON file (can specify multiple, applied in order)",
+)
+@click.option(
+    "--var",
+    "variables",
+    multiple=True,
+    help="Set variable value (format: NAME=VALUE, can specify multiple)",
+)
+@click.option(
+    "-s",
+    "--system-prompt",
+    "system_prompt",
+    help="System prompt (use @file.txt to read from file)",
+)
+@click.option(
+    "--dump-job",
+    is_flag=True,
+    help="Output final job JSON and exit (don't execute)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be executed without running",
+)
+@click.option("-o", "--output", help="Output file path or S3 URI")
 @click.option(
     "-i",
     "--input",
@@ -79,7 +121,13 @@ from ..utils import (
 )
 def generate(
     prompt: str | None,
-    output: str,
+    template_name: str | None,
+    keys_files: tuple[str, ...],
+    variables: tuple[str, ...],
+    system_prompt: str | None,
+    dump_job: bool,
+    dry_run: bool,
+    output: str | None,
     input_images: tuple[str, ...],
     labels: tuple[str, ...],
     model: str | None,
@@ -100,6 +148,21 @@ def generate(
         # Basic generation
         imagen generate "a serene landscape" -o output.png
 
+        # Using template + keys (FAST ITERATION!)
+        imagen generate --template thumbnail --keys episode.json -p "New prompt"
+
+        # With variable overrides
+        imagen generate --template thumbnail --keys episode.json --var show_info='{"title":"..."}'
+
+        # System prompt
+        imagen generate "test" -o output.png -s "You are an expert"
+
+        # Dump job to see what would be executed
+        imagen generate --template thumbnail --keys episode.json --dump-job
+
+        # Dry run
+        imagen generate --template thumbnail --keys episode.json --dry-run
+
         # With temperature control
         imagen generate "a robot" -o robot.png --temperature 0.8
 
@@ -115,36 +178,175 @@ def generate(
         # Save to S3
         imagen generate "a sunset" -o s3://my-bucket/sunset.png
 
-        # Get JSON output
-        imagen generate "a mountain" -o mountain.png --json
-
-        # With aspect ratio
-        imagen generate "landscape" -o wide.png --aspect-ratio 16:9
-
     \b
     Notes:
+        - Template + keys enable fast iteration on prompts
+        - Variables in templates use {variable_name} syntax
+        - CLI flags override template/keys values
         - Input images can be local paths, S3 URIs, or HTTP URLs
         - Output can be local path or S3 URI
         - Use --label to provide context for each input image
-        - Temperature: 0.0 = consistent, 1.0 = creative
     """
     try:
-        # Get prompt from args or stdin
-        prompt_text = get_prompt_from_args_or_stdin(prompt)
+        logger.info("Starting generate command with template/keys system")
 
-        # Validate output path
-        output = validate_output_path(output)
+        # Step 1: Load template if specified
+        template = None
+        if template_name:
+            logger.info(f"Loading template: {template_name}")
+            try:
+                template = load_template(template_name)
+                logger.debug(f"Template loaded with {len(template)} keys")
+            except FileNotFoundError:
+                echo_error(f"Template '{template_name}' not found", json_mode=json_mode)
+                sys.exit(1)
 
-        # Validate input images
-        validated_inputs = []
-        for i, input_path in enumerate(input_images):
-            validated_path = validate_input_path(input_path)
+        # Step 2: Load keys files
+        keys_list = []
+        for keys_file in keys_files:
+            logger.info(f"Loading keys file: {keys_file}")
+            try:
+                with Path(keys_file).open() as f:
+                    keys_data = json.load(f)
+                keys_list.append(keys_data)
+                logger.debug(f"Keys file loaded with {len(keys_data)} keys")
+            except json.JSONDecodeError as e:
+                echo_error(f"Invalid JSON in {keys_file}: {e}", json_mode=json_mode)
+                sys.exit(1)
 
-            # Check if there's a corresponding label
-            if i < len(labels):
-                validated_inputs.append((labels[i], validated_path))
-            else:
-                validated_inputs.append(validated_path)
+        # Step 3: Parse --var variables
+        var_dict = {}
+        for var in variables:
+            if "=" not in var:
+                echo_error(f"Invalid variable format: {var}. Use NAME=VALUE", json_mode=json_mode)
+                sys.exit(1)
+            name, value = var.split("=", 1)
+            var_dict[name.strip()] = value.strip()
+            logger.debug(f"Variable: {name} = {value[:50]}...")
+
+        # Step 4: Handle system_prompt with @file support
+        if system_prompt and system_prompt.startswith("@"):
+            # Read from file
+            file_path = Path(system_prompt[1:])
+            if not file_path.exists():
+                echo_error(f"System prompt file not found: {file_path}", json_mode=json_mode)
+                sys.exit(1)
+            system_prompt = file_path.read_text()
+            logger.debug(f"System prompt loaded from file: {file_path}")
+
+        # Step 5: Build CLI overrides dict
+        cli_overrides = {}
+
+        # Handle prompt (from CLI arg or stdin, but not required if in template/keys)
+        if prompt is not None:
+            cli_overrides["prompt"] = prompt
+        elif not sys.stdin.isatty() and not template_name:
+            # Try stdin only if no template
+            cli_overrides["prompt"] = get_prompt_from_args_or_stdin(None)
+
+        if system_prompt:
+            cli_overrides["system_prompt"] = system_prompt
+
+        if output:
+            cli_overrides["output_images"] = [validate_output_path(output)]
+
+        # Handle input images
+        if input_images:
+            validated_inputs = []
+            for i, input_path in enumerate(input_images):
+                validated_path = validate_input_path(input_path)
+                if i < len(labels):
+                    validated_inputs.append((labels[i], validated_path))
+                else:
+                    validated_inputs.append(validated_path)
+            cli_overrides["input_images"] = validated_inputs
+
+        if model is not None:
+            cli_overrides["model"] = model
+
+        if temperature is not None:
+            cli_overrides["temperature"] = temperature
+
+        if output_text:
+            cli_overrides["output_text"] = True
+
+        if aspect_ratio:
+            cli_overrides["aspect_ratio"] = aspect_ratio
+
+        if trace is not None:
+            cli_overrides["trace"] = trace
+
+        if tags:
+            cli_overrides["tags"] = list(tags)
+
+        # Add --var variables to CLI overrides
+        cli_overrides.update(var_dict)
+
+        logger.info(f"CLI overrides: {len(cli_overrides)} keys")
+
+        # Step 6: Merge template + keys + CLI overrides
+        logger.info("Merging template, keys, and CLI overrides")
+        merged = merge_template_keys_overrides(
+            template=template,
+            keys=keys_list if keys_list else None,
+            cli_overrides=cli_overrides if cli_overrides else None,
+        )
+        logger.debug(f"Merged job has {len(merged)} keys")
+
+        # Step 7: Split into library params and variables
+        logger.info("Splitting job into library params and variables")
+        lib_params, var_values = split_job_and_variables(merged)
+        logger.debug(f"Library params: {len(lib_params)}, Variables: {len(var_values)}")
+
+        # Step 8: Validate and substitute variables
+        logger.info("Validating and substituting variables")
+        is_valid, missing = validate_variables(lib_params, var_values)
+        if not is_valid:
+            echo_error(
+                f"Missing required variables: {', '.join(missing)}\n"
+                f"Provide them with --var NAME=VALUE or in keys file",
+                json_mode=json_mode,
+            )
+            sys.exit(1)
+
+        final_job = substitute_variables(lib_params, var_values)
+        logger.info(f"Final job ready with {len(final_job)} parameters")
+
+        # Step 9: Handle --dump-job
+        if dump_job:
+            logger.info("Dumping job JSON (--dump-job mode)")
+            output_json(final_job)
+            return
+
+        # Step 10: Handle --dry-run
+        if dry_run:
+            logger.info("Dry run mode - showing job without executing")
+            click.echo("Would execute the following job:")
+            click.echo()
+            click.echo(json.dumps(final_job, indent=2))
+            return
+
+        # Step 11: Execute normally
+        logger.info("Executing job")
+
+        # Check required fields
+        if "prompt" not in final_job:
+            echo_error(
+                "No prompt provided. Provide via:\n"
+                "  - CLI argument: imagen generate 'prompt' ...\n"
+                "  - Stdin: echo 'prompt' | imagen generate ...\n"
+                "  - Template/keys: with prompt field\n"
+                "  - --var: --var prompt='...'",
+                json_mode=json_mode,
+            )
+            sys.exit(1)
+
+        if "output_images" not in final_job:
+            echo_error(
+                "No output specified. Provide with -o OUTPUT or in template/keys",
+                json_mode=json_mode,
+            )
+            sys.exit(1)
 
         # Get configuration
         cfg = get_config()
@@ -160,13 +362,13 @@ def generate(
             )
             sys.exit(1)
 
-        # Get model
-        if model is None:
-            model = cfg.get_default_model()
+        # Get model (from final_job or config)
+        model_name = final_job.pop("model", None) or cfg.get_default_model()
 
-        # Get tracing setting
-        if trace is None:
-            trace = cfg.get_langsmith_tracing()
+        # Get tracing setting (from final_job or config)
+        trace_enabled = final_job.pop("trace", None)
+        if trace_enabled is None:
+            trace_enabled = cfg.get_langsmith_tracing()
 
         # Show progress
         if not json_mode:
@@ -174,45 +376,27 @@ def generate(
 
         # Create generator
         generator = GeminiImageGenerator(
-            model_name=model,
+            model_name=model_name,
             api_key=api_key,
-            log_images=trace,
+            log_images=trace_enabled,
         )
 
-        # Build generation parameters
-        gen_params = {
-            "prompt": prompt_text,
-            "output_images": [output],
-        }
-
-        if validated_inputs:
-            gen_params["input_images"] = validated_inputs
-
-        if temperature is not None:
-            gen_params["temperature"] = temperature
-
-        if output_text:
-            gen_params["output_text"] = True
-
-        if aspect_ratio:
-            gen_params["aspect_ratio"] = aspect_ratio
-
-        if tags:
-            gen_params["tags"] = list(tags)
-
-        # Generate
-        result = generator.generate(**gen_params)
+        # Generate (final_job now only contains library params)
+        logger.debug(f"Calling generator.generate() with: {list(final_job.keys())}")
+        result = generator.generate(**final_job)
 
         # Clear progress
         if not json_mode:
             clear_progress()
+
+        logger.info("Generation completed successfully")
 
         # Output results
         if json_mode:
             output_data = {
                 "success": True,
                 "image_path": result.image_location,
-                "model": model,
+                "model": model_name,
             }
 
             if result.image_s3_uri:
@@ -221,13 +405,13 @@ def generate(
             if result.image_http_url:
                 output_data["http_url"] = result.image_http_url
 
-            if output_text and result.text:
+            if final_job.get("output_text") and result.text:
                 output_data["text"] = result.text
 
             output_json(output_data)
         else:
             echo_success(f"Generated image saved to: {result.image_location}")
-            echo_info(f"Model: {model}")
+            echo_info(f"Model: {model_name}")
 
             if result.image_s3_uri:
                 echo_info(f"S3 URI: {result.image_s3_uri}")
@@ -235,7 +419,7 @@ def generate(
             if result.image_http_url:
                 echo_info(f"URL: {result.image_http_url}")
 
-            if output_text and result.text:
+            if final_job.get("output_text") and result.text:
                 click.echo()
                 click.echo("Text output:")
                 click.echo(result.text)
@@ -247,4 +431,5 @@ def generate(
             clear_progress()
         error_msg = format_api_error(e)
         echo_error(error_msg, json_mode=json_mode)
+        logger.exception("Generate command failed")
         sys.exit(1)
