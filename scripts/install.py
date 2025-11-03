@@ -176,9 +176,9 @@ def install_package(venv_dir: Path, os_name: str) -> bool:
             capture_output=True,
         )
 
-        # Install gemini-imagen with S3 support
+        # Install gemini-imagen with S3 support (--no-cache-dir ensures latest version)
         subprocess.run(
-            [str(python_exe), "-m", "pip", "install", f"{PACKAGE_NAME}[s3]"],
+            [str(python_exe), "-m", "pip", "install", "--no-cache-dir", f"{PACKAGE_NAME}[s3]"],
             check=True,
             capture_output=True,
         )
