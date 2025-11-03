@@ -6,7 +6,7 @@
 [![CI](https://github.com/aviadr1/gemini-imagen/actions/workflows/ci.yml/badge.svg)](https://github.com/aviadr1/gemini-imagen/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/aviadr1/gemini-imagen/branch/main/graph/badge.svg)](https://codecov.io/gh/aviadr1/gemini-imagen)
 
-A comprehensive Python library and CLI for Google Gemini's image generation and analysis capabilities.
+A powerful command-line tool for Google Gemini's image generation and analysis capabilities.
 
 > **📚 For Python library usage**, see [LIBRARY.md](LIBRARY.md)
 > **🚀 For advanced features**, see [ADVANCED_USAGE.md](ADVANCED_USAGE.md)
@@ -17,19 +17,18 @@ A comprehensive Python library and CLI for Google Gemini's image generation and 
 - 🎨 **Text-to-Image Generation** - Create images from text prompts
 - 📐 **Aspect Ratio Control** - Custom aspect ratios (16:9, 1:1, 9:16, etc.)
 - 🏷️ **Labeled Input Images** - Reference images by name in prompts
-- 📸 **Multiple Output Images** - Save same image to multiple locations
 - 💬 **Image Analysis** - Get detailed text descriptions of images
-- ☁️ **S3 Integration** - Seamless AWS S3 upload/download with URL logging
-- 📈 **LangSmith Tracing** - Full observability for debugging and monitoring
-- 🔒 **Safety Settings** - Configurable content filtering thresholds
-- 🖥️ **CLI Tool** - Powerful command-line interface for all operations
-- 🔄 **Type-Safe** - Full type hints with Pydantic validation
+- ✏️ **Image Editing** - Edit images using reference images and prompts
+- ☁️ **S3 Integration** - Seamless AWS S3 upload/download
+- 📈 **LangSmith Tracing** - Full observability for debugging
+- 🔒 **Safety Settings** - Configurable content filtering
+- 🔄 **Self-Updating** - Built-in update system for standalone installs
 
 ## Installation
 
-### Quick Install (No Python Required)
+### Quick Install (Recommended)
 
-Install `imagen` CLI without manually installing Python or managing dependencies:
+Install `imagen` CLI without manually managing Python or dependencies:
 
 **Linux / macOS:**
 ```bash
@@ -47,7 +46,7 @@ The installer will:
 - Add `imagen` command to your PATH
 - Support self-updates with `imagen self-update`
 
-> **Note:** Python 3.12+ is still required but the installer handles everything automatically.
+> **Note:** Python 3.12+ is required but the installer handles everything automatically.
 
 ### Traditional Installation (with pip)
 
@@ -72,51 +71,37 @@ For detailed installation instructions, see [docs/INSTALLATION.md](docs/INSTALLA
 
 ## Quick Start
 
-### CLI Usage
+### 1. Set Up API Key
 
 ```bash
-# Set up your API key
-export GOOGLE_API_KEY="your-api-key-here"
-
-# Or save it in config
+# Option 1: Save in config (recommended)
 imagen keys set google YOUR_API_KEY
 
-# Generate an image
-imagen generate "a serene Japanese garden with cherry blossoms" -o garden.png
-
-# Analyze an image
-imagen analyze photo.jpg
-
-# Edit an image
-imagen edit "make it sunset" -i original.jpg -o edited.png
-
-# Upload to S3
-imagen upload local.png s3://my-bucket/remote.png
+# Option 2: Environment variable
+export GOOGLE_API_KEY="your-api-key-here"
 ```
 
-### Python Library
+Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
 
-For detailed Python API documentation, see **[LIBRARY.md](LIBRARY.md)**.
+### 2. Generate Your First Image
 
-Quick example:
+```bash
+imagen generate "a serene Japanese garden with cherry blossoms" -o garden.png
+```
 
-```python
-from gemini_imagen import GeminiImageGenerator
+### 3. Analyze an Image
 
-generator = GeminiImageGenerator()
+```bash
+imagen analyze photo.jpg
+```
 
-# Generate an image
-result = await generator.generate(
-    prompt="A serene Japanese garden with cherry blossoms",
-    output_images=["garden.png"]
-)
+### 4. Edit an Image
 
-print(f"Image saved to: {result.image_location}")
+```bash
+imagen edit "make it sunset" -i original.jpg -o edited.png
 ```
 
 ## CLI Commands
-
-The CLI provides comprehensive image generation and management capabilities:
 
 | Command | Description | Example |
 |---------|-------------|---------|
@@ -128,78 +113,133 @@ The CLI provides comprehensive image generation and management capabilities:
 | `keys` | Manage API keys | `imagen keys set google YOUR_KEY` |
 | `config` | Manage configuration | `imagen config set default_model gemini-2.0-flash-exp` |
 | `models` | List and manage models | `imagen models list` |
+| `template` | Manage generation templates | `imagen template save my-template` |
+| `langsmith` | LangSmith tracing tools | `imagen langsmith replay TRACE_URL` |
 | `self-update` | Update to latest version | `imagen self-update` |
 
-### Common CLI Options
+## Common Usage Patterns
+
+### Generate with Options
 
 ```bash
-# Generate with options
-imagen generate "prompt" -o output.png \
+# Control generation parameters
+imagen generate "futuristic cityscape" -o city.png \
   --temperature 0.8 \
   --aspect-ratio 16:9 \
-  --safety-setting preset:relaxed \
-  --trace \
-  --json
+  --safety-setting preset:relaxed
 
-# Use input images
-imagen generate "blend these styles" \
-  -i style.jpg --label "Style:" \
-  -i composition.jpg --label "Composition:" \
-  -o result.png
+# With verbose output for debugging
+imagen -v generate "test prompt" -o test.png
+```
 
-# Pipe input
-echo "a sunset" | imagen generate -o sunset.png
+### Use Input Images
+
+```bash
+# Single input image
+imagen generate "make this image more vibrant" \
+  -i photo.jpg \
+  -o vibrant.png
+
+# Multiple labeled inputs
+imagen generate "blend these two art styles" \
+  -i style1.jpg --label "Impressionist style:" \
+  -i style2.jpg --label "Cubist style:" \
+  -o blended.png
+```
+
+### Pipe Input from Commands
+
+```bash
+# From echo
+echo "a sunset over mountains" | imagen generate -o sunset.png
+
+# From file
 cat prompt.txt | imagen generate -o output.png
+
+# From other commands
+fortune | imagen generate -o fortune.png
 ```
 
-## Python Library Examples
+### Work with S3
 
-For comprehensive Python API documentation, examples, and integration patterns, see **[LIBRARY.md](LIBRARY.md)**.
+```bash
+# Generate directly to S3
+imagen generate "a robot" -o s3://my-bucket/robot.png
 
-Here are a few quick examples:
+# Use S3 input images
+imagen edit "make it brighter" \
+  -i s3://my-bucket/input.png \
+  -o s3://my-bucket/output.png
 
-### Text-to-Image Generation
+# Upload existing images
+imagen upload local.png s3://my-bucket/remote.png
 
-```python
-result = await generator.generate(
-    prompt="A futuristic cityscape at sunset with flying cars",
-    output_images=["cityscape.png"],
-    aspect_ratio="16:9",
-    temperature=0.8
-)
+# Download from S3
+imagen download s3://my-bucket/image.png local.png
 ```
 
-### Image Analysis
+### Templates for Repeated Generation
 
-```python
-result = await generator.generate(
-    prompt="Describe this image in detail",
-    input_images=["photo.jpg"],
-    output_text=True
-)
-print(result.text)
+```bash
+# Save current parameters as a template
+imagen generate "test prompt" \
+  --temperature 0.8 \
+  --aspect-ratio 16:9 \
+  --template save my-style
+
+# Use template with different prompt
+imagen generate "new prompt" --template my-style -o new.png
+
+# List templates
+imagen template list
 ```
 
-### With Safety Settings
+### JSON Output
 
-```python
-from gemini_imagen import SafetySetting, HarmCategory, HarmBlockThreshold
+```bash
+# Get structured output
+imagen generate "a cat" -o cat.png --json
 
-result = await generator.generate(
-    prompt="A tasteful artistic photo",
-    output_images=["output.png"],
-    safety_settings=[
-        SafetySetting(
-            category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            threshold=HarmBlockThreshold.BLOCK_ONLY_HIGH
-        )
-    ]
-)
+# Output:
+# {
+#   "image_location": "cat.png",
+#   "model": "gemini-2.5-flash-image",
+#   "safety_ratings": {...},
+#   "finish_reason": "STOP"
+# }
+
+# Analyze with JSON output
+imagen analyze image.jpg --json
 ```
-
-For more examples including S3 integration, LangSmith tracing, batch processing, and web framework integration, see **[LIBRARY.md](LIBRARY.md)**.
 
 ## Configuration
+
+### Set Default Values
+
+```bash
+# Set defaults for common options
+imagen config set default_model gemini-2.0-flash-exp
+imagen config set temperature 0.8
+imagen config set aspect_ratio 16:9
+imagen config set safety_settings relaxed
+
+# View all configuration
+imagen config list
+
+# Get specific value
+imagen config get temperature
+
+# Show config file location
+imagen config path  # ~/.config/imagen/config.yaml
+```
+
+### Configuration Precedence
+
+Values are resolved in order (highest to lowest priority):
+1. **Command-line flags** - `--temperature 0.9`
+2. **Environment variables** - `TEMPERATURE=0.8`
+3. **Config file** - `~/.config/imagen/config.yaml`
+4. **Default values** - Built-in defaults
 
 ### Environment Variables
 
@@ -218,81 +258,179 @@ export LANGSMITH_TRACING=true
 export LANGSMITH_PROJECT=your-project-name
 ```
 
-### CLI Configuration
+### Safety Settings
+
+Control content filtering with presets or custom settings:
 
 ```bash
-# Set default values
-imagen config set default_model gemini-2.0-flash-exp
-imagen config set temperature 0.8
-imagen config set aspect_ratio 16:9
-imagen config set safety_settings relaxed
+# Use preset
+imagen generate "prompt" -o out.png --safety-setting preset:relaxed
 
-# View configuration
-imagen config list
+# Available presets:
+# - strict: Maximum filtering
+# - default: Balanced filtering
+# - relaxed: Minimal filtering
+# - none: No filtering
 
-# Configuration location
-imagen config path  # Shows: ~/.config/imagen/config.yaml
+# Custom per-category settings
+imagen generate "prompt" -o out.png \
+  --safety-setting SEXUALLY_EXPLICIT:BLOCK_ONLY_HIGH \
+  --safety-setting DANGEROUS_CONTENT:BLOCK_MEDIUM_AND_ABOVE
 ```
 
-### Configuration Precedence
+See [docs/SAFETY_FILTERING.md](docs/SAFETY_FILTERING.md) for detailed safety configuration.
 
-Values are resolved in order (highest to lowest priority):
-1. Command-line flags
-2. Environment variables
-3. Config file (`~/.config/imagen/config.yaml`)
-4. Default values
+## Advanced Features
 
-## Python API Reference
+### LangSmith Tracing
 
-For complete API documentation with detailed examples, see **[LIBRARY.md](LIBRARY.md#api-reference)**.
+Enable observability for debugging and monitoring:
 
-Quick reference:
+```bash
+# Enable tracing for a command
+imagen generate "test" -o test.png --trace
 
-### GeminiImageGenerator
+# Add tags for organization
+imagen generate "test" -o test.png \
+  --trace \
+  --tag experiment \
+  --tag version:1.0
 
-```python
-generator = GeminiImageGenerator(
-    model_name="gemini-2.5-flash-image",  # Image generation model (default)
-    api_key=None,                         # Auto-loads from GOOGLE_API_KEY env var
-    log_images=True                       # Enable LangSmith logging
-)
+# Replay from LangSmith trace
+imagen langsmith replay https://smith.langchain.com/public/...
 ```
 
-### generate() Method
+### Template System
 
-```python
-result = await generator.generate(
-    prompt: str,                           # Main prompt (required)
-    system_prompt: Optional[str] = None,   # System instructions
-    input_images: Optional[List] = None,   # Input images
-    temperature: Optional[float] = None,   # Sampling temperature (0.0-1.0)
-    aspect_ratio: Optional[str] = None,    # e.g., "16:9"
-    safety_settings: Optional[List] = None,# Safety filtering
-    output_images: Optional[List] = None,  # Generate images
-    output_text: bool = False,             # Generate text
-    metadata: Optional[Dict] = None,       # LangSmith metadata
-    tags: Optional[List] = None            # LangSmith tags
-) -> GenerationResult
+Create reusable generation workflows:
+
+```bash
+# Save current settings as template
+imagen generate "example" -o test.png \
+  --temperature 0.8 \
+  --aspect-ratio 16:9 \
+  --template save my-template
+
+# Use template with overrides
+imagen generate "new prompt" \
+  --template my-template \
+  --temperature 0.9 \
+  -o new.png
+
+# Save template from job file
+imagen template save my-template job.json
+
+# List all templates
+imagen template list
+
+# Show template content
+imagen template show my-template
 ```
 
-See **[LIBRARY.md](LIBRARY.md)** for full type definitions, parameter details, and usage examples.
+### Batch Processing
+
+```bash
+# Generate multiple images from file
+cat prompts.txt | while read prompt; do
+  imagen generate "$prompt" -o "output_$(date +%s).png"
+done
+
+# Process directory of images
+for img in *.jpg; do
+  imagen analyze "$img" > "${img%.jpg}.txt"
+done
+```
+
+## Updating
+
+### Standalone Installation
+
+```bash
+# Check for updates
+imagen self-update --check
+
+# Update to latest version
+imagen self-update
+
+# Update to specific version
+imagen self-update --version 0.6.0
+```
+
+### Pip Installation
+
+```bash
+pip install --upgrade gemini-imagen
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**API Key Errors:**
+```bash
+# Verify key is set
+imagen keys list
+
+# Set key if missing
+imagen keys set google YOUR_KEY
+```
+
+**Import Errors (pip installation):**
+```bash
+# Reinstall with dependencies
+pip install --force-reinstall gemini-imagen[s3]
+```
+
+**S3 Upload Failures:**
+```bash
+# Verify AWS credentials
+imagen keys list
+
+# Set AWS credentials
+imagen keys set aws-access-key YOUR_KEY
+imagen keys set aws-secret-key YOUR_SECRET
+imagen config set aws_storage_bucket_name YOUR_BUCKET
+```
+
+### Verbose Output
+
+Use `-v` or `--verbose` flag for detailed error information:
+
+```bash
+imagen -v generate "test" -o test.png
+```
+
+### Get Help
+
+```bash
+# General help
+imagen --help
+
+# Command-specific help
+imagen generate --help
+imagen analyze --help
+
+# Show version
+imagen --version
+```
+
+## Documentation
+
+- **[LIBRARY.md](LIBRARY.md)** - Python library API documentation and examples
+- **[ADVANCED_USAGE.md](ADVANCED_USAGE.md)** - Advanced features, automation, integration
+- **[docs/SAFETY_FILTERING.md](docs/SAFETY_FILTERING.md)** - Safety configuration details
+- **[docs/INSTALLATION.md](docs/INSTALLATION.md)** - Detailed installation guide
+- **[RELEASING.md](RELEASING.md)** - Release process for maintainers
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development setup and contributing
 
 ## Examples
 
 See the [`examples/`](examples/) directory for complete working examples:
 
-- [`basic_generation.py`](examples/basic_generation.py) - Simple text-to-image
-- [`image_analysis.py`](examples/image_analysis.py) - Analyze images
-- [`labeled_inputs.py`](examples/labeled_inputs.py) - Use labeled images
-- [`s3_integration.py`](examples/s3_integration.py) - S3 upload/download
-- [`langsmith_tracing.py`](examples/langsmith_tracing.py) - Enable tracing
-
-## Documentation
-
-- **[LIBRARY.md](LIBRARY.md)** - Python library documentation, API reference, integration examples
-- **[ADVANCED_USAGE.md](ADVANCED_USAGE.md)** - Advanced features, S3, LangSmith, scripting, automation
-- **[docs/SAFETY_FILTERING.md](docs/SAFETY_FILTERING.md)** - Safety filtering configuration and details
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development setup, testing, contributing guidelines
+- CLI usage examples in shell scripts
+- Python library integration examples
+- Advanced automation workflows
+- Web framework integration
 
 ## Pricing
 
@@ -307,12 +445,16 @@ See the [`examples/`](examples/) directory for complete working examples:
 ## Limitations
 
 - **Multiple images**: Gemini may not always generate the exact number requested
-- **Structured output**: Only available with text model (separate call required)
 - **Rate limits** (free tier): 10 requests/minute, 1500/day
+- **Aspect ratios**: Limited to supported ratios (1:1, 16:9, 9:16, 4:3, 3:4)
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Development environment setup
+- Code style guidelines
+- Testing requirements
+- Pull request process
 
 ## License
 
@@ -329,6 +471,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/aviadr1/gemini-imagen/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/aviadr1/gemini-imagen/discussions)
 - **Documentation**: This README and linked documentation files
 - **Examples**: [`examples/`](examples/) directory
 
