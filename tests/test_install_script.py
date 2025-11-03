@@ -96,13 +96,14 @@ class TestInstallPaths:
         # Clear XDG environment variables to test defaults
         monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+        # Set HOME to tmp_path
+        monkeypatch.setenv("HOME", str(tmp_path))
 
-        with patch.object(Path, "home", return_value=tmp_path):
-            venv_dir, wrapper_dir, config_dir = install.get_install_paths("linux")
+        venv_dir, wrapper_dir, config_dir = install.get_install_paths("linux")
 
-            assert venv_dir == tmp_path / ".local" / "share" / "gemini-imagen"
-            assert wrapper_dir == tmp_path / ".local" / "bin"
-            assert config_dir == tmp_path / ".config" / "imagen"
+        assert venv_dir == tmp_path / ".local" / "share" / "gemini-imagen"
+        assert wrapper_dir == tmp_path / ".local" / "bin"
+        assert config_dir == tmp_path / ".config" / "imagen"
 
     def test_windows_paths(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test Windows installation paths."""
@@ -225,30 +226,34 @@ class TestInstallReceipt:
 class TestPathUpdate:
     """Test PATH update logic."""
 
-    def test_unix_path_update_bashrc(self, tmp_path: Path) -> None:
+    def test_unix_path_update_bashrc(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test adding to .bashrc."""
         bashrc = tmp_path / ".bashrc"
         bashrc.write_text("# Existing content\n")
 
         wrapper_dir = Path("/home/user/.local/bin")
 
-        with patch.object(Path, "home", return_value=tmp_path):
-            modified = install.update_path_unix(wrapper_dir)
+        # Set HOME to tmp_path
+        monkeypatch.setenv("HOME", str(tmp_path))
+        modified = install.update_path_unix(wrapper_dir)
 
         assert modified is True
         content = bashrc.read_text()
         assert str(wrapper_dir) in content
         assert "gemini-imagen installer" in content
 
-    def test_unix_path_already_present(self, tmp_path: Path) -> None:
+    def test_unix_path_already_present(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that PATH is not duplicated."""
         wrapper_dir = Path("/home/user/.local/bin")
 
         bashrc = tmp_path / ".bashrc"
         bashrc.write_text(f'export PATH="{wrapper_dir}:$PATH"\n')
 
-        with patch.object(Path, "home", return_value=tmp_path):
-            modified = install.update_path_unix(wrapper_dir)
+        # Set HOME to tmp_path
+        monkeypatch.setenv("HOME", str(tmp_path))
+        modified = install.update_path_unix(wrapper_dir)
 
         # Should not modify since already present
         assert modified is False

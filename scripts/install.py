@@ -95,20 +95,23 @@ def get_install_paths(os_name: str) -> tuple[Path, Path, Path]:
     Returns:
         Tuple of (venv_dir, wrapper_dir, config_dir)
     """
+    # Get home directory - respect HOME env var if set (important for testing)
+    home = Path(os.environ.get("HOME", str(Path.home())))
+
     if os_name == "windows":
         # Windows paths
-        local_appdata = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        local_appdata = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
         venv_dir = local_appdata / "gemini-imagen"
         wrapper_dir = local_appdata / "Programs" / "imagen"
         config_dir = local_appdata / "imagen"
     else:
         # Unix paths (Linux/macOS)
         # Follow XDG Base Directory specification
-        data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-        config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        data_home = Path(os.environ.get("XDG_DATA_HOME", home / ".local" / "share"))
+        config_home = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
 
         venv_dir = data_home / "gemini-imagen"
-        wrapper_dir = Path.home() / ".local" / "bin"
+        wrapper_dir = home / ".local" / "bin"
         config_dir = config_home / "imagen"
 
     return venv_dir, wrapper_dir, config_dir
@@ -268,7 +271,8 @@ def create_install_receipt(
 
 def update_path_unix(wrapper_dir: Path, shell_name: Optional[str] = None) -> bool:
     """Update PATH in Unix shell profile files."""
-    home = Path.home()
+    # Get home directory - respect HOME env var if set
+    home = Path(os.environ.get("HOME", str(Path.home())))
 
     # Determine which shell profiles to update
     if shell_name:
