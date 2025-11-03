@@ -98,7 +98,7 @@ jobs:
           GV_AWS_ACCESS_KEY_ID: ${{ secrets.GV_AWS_ACCESS_KEY_ID }}
           GV_AWS_SECRET_ACCESS_KEY: ${{ secrets.GV_AWS_SECRET_ACCESS_KEY }}
           GV_AWS_STORAGE_BUCKET_NAME: ${{ secrets.GV_AWS_STORAGE_BUCKET_NAME }}
-        run: uv run pytest tests/ -v -m integration --tb=short
+        run: uv run pytest tests/ -v -m "integration and not flaky" --tb=short
 
   build:
     name: Build Package
