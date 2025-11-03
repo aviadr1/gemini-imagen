@@ -163,19 +163,19 @@ def install_package(venv_dir: Path, os_name: str) -> bool:
     """Install gemini-imagen package into venv."""
     log_info(f"Installing {PACKAGE_NAME} from PyPI...")
 
-    pip_exe = get_pip_executable(venv_dir, os_name)
+    python_exe = get_python_executable(venv_dir, os_name)
 
     try:
-        # Upgrade pip first
+        # Upgrade pip first using python -m pip (works on all platforms)
         subprocess.run(
-            [str(pip_exe), "install", "--upgrade", "pip"],
+            [str(python_exe), "-m", "pip", "install", "--upgrade", "pip"],
             check=True,
             capture_output=True,
         )
 
         # Install gemini-imagen with S3 support
         subprocess.run(
-            [str(pip_exe), "install", f"{PACKAGE_NAME}[s3]"],
+            [str(python_exe), "-m", "pip", "install", f"{PACKAGE_NAME}[s3]"],
             check=True,
             capture_output=True,
         )
