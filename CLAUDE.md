@@ -15,12 +15,11 @@
 ## Code Quality Tools
 
 ### Linters and Formatters
-- **Ruff**: Used for both linting and formatting
-  - Run linter: `uv run ruff check --fix src/ examples/`
-  - Run formatter: `uv run ruff format src/ examples/`
+All linters run automatically via pre-commit hooks:
+- **Ruff**: Linting and formatting (includes import sorting via isort rules)
 - **mypy**: Type checking with `--ignore-missing-imports` flag
-  - Run: `uv run mypy src/gemini_imagen --ignore-missing-imports`
-- **isort**: Import sorting (configured with black profile, line length 100)
+- Run all checks: `pre-commit run --all-files`
+- Pre-commit runs automatically on `git commit`
 
 ### Pre-commit Hooks
 - Pre-commit hooks are configured in `.pre-commit-config.yaml`
