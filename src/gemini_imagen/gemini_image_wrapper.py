@@ -736,6 +736,13 @@ class GeminiImageGenerator:
             types.FinishReason.MALFORMED_FUNCTION_CALL: "Generation failed - malformed function call",
             types.FinishReason.OTHER: "Generation stopped for unspecified reason",
         }
+
+        # Handle finish reason by string name if not found in enum
+        # This handles new finish reasons like IMAGE_OTHER that may not be in the SDK yet
+        finish_reason_str = str(finish_reason)
+        if "IMAGE_OTHER" in finish_reason_str:
+            return "Image generation completed with alternative format or method"
+
         return interpretations.get(finish_reason, f"Unknown finish reason: {finish_reason}")
 
     def _format_safety_info(
