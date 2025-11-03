@@ -96,7 +96,13 @@ def get_install_paths(os_name: str) -> tuple[Path, Path, Path]:
         Tuple of (venv_dir, wrapper_dir, config_dir)
     """
     # Get home directory - respect HOME env var if set (important for testing)
-    home = Path(os.environ.get("HOME", str(Path.home())))
+    home_from_env = os.environ.get("HOME")
+    home_from_pathlib = str(Path.home())
+    # Debug: print what we're seeing
+    if home_from_env:
+        log_info(f"DEBUG: HOME env var = {home_from_env}")
+    log_info(f"DEBUG: Path.home() = {home_from_pathlib}")
+    home = Path(home_from_env if home_from_env else home_from_pathlib)
 
     if os_name == "windows":
         # Windows paths
